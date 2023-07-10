@@ -1,0 +1,211 @@
+---
+title: "AGM Potency Control Charts"
+author: "Jeffrey R. Weidner"
+format: pdf
+editor: visual
+---
+
+## Purpose
+
+Document the CtrlChart.R script, so that it can be adapted into a Shiny webtool for the Assay Guidance Manual.
+
+This application generates [Control Charts](https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc3.htm) (I-MR) for potency data derived from bioassays. Reference compound(s) are tested in each run on an assay and may be tested on one or more plates of the experiment. This version of CtrlChart.R assumes that the reference compound is run only once in an experiment, but later versions can be updated to address replicates on multiple plates within an experiment. If more than one reference compound is used, multiple data sets can be uploaded and analyzed independently.
+
+Control charts are used to monitor a process in order to demonstrate reproducibility and identify the potential problems which should be investigated. In general control charts track both a measurement and the variability in that measurement. Potency data have a log-Normal distribution, so the data must be transformed to log10 values before performing any statistical analysis.
+
+## Test Data
+
+Generate a set of test potency data as a tibble with 2 columns. Run should either be an integer or a date.
+
+```{r}
+
+library(tidyverse)
+
+# Seed for reproducible examples remove or change for different random data set
+set.seed(19620903)
+
+# Function to generate test data
+
+tstdata <- function(TrueMeas, TrueMSR, SmplSize, Dates = TRUE) {
+  TrueMeas <- log10(TrueMeas)
+  StdDev <- log10(TrueMSR) / (2 * sqrt(2))
+  Run <- if(Dates){
+    seq(from = mdy('1/1/2023'), by = '1 week', length.out = SmplSize)
+  } else {c(1:SmplSize)}
+  
+  Measure <- rnorm(n = SmplSize, mean = TrueMeas, sd = StdDev)
+  
+  Output <- tibble(Run, Measure) %>% 
+    mutate(Measure = 10 ^ Measure)
+}
+
+TestData <- tstdata(TrueMeas = 10, TrueMSR = 3, SmplSize = 50, Dates = TRUE)
+
+TestData
+```
+
+The tstdata function generates an ordered set of test data based on the supplied potency (TrueMeas), variability(TrueMSR), and sample size. Dates are the default Run identifier.
+
+## User Input
+
+The user will upload a .csv data file with 2 columns to UsrData.The first column contains the run identifier as either an integer or date and the second column is a numeric value for the measurement. The the user should specify the run identifier type and data should be checked for value types. The user may also specify a string to be used in the report header and subtitle in the generated plots.
+
+``` {r}
+
+# User specifies if runs are identified by dates and a title for the generated output
+
+Dates = TRUE
+UsrTitle <- 'Potency 123456'
+
+# User uploads data - 2 columns Column 1 = Run number or date, Column 2 = Measurement
+```
+
+## Data Analysis
+
+Data is sorted by UsrData\$Run to ensure time series order then the \$Measure column is converted to log(10) values. The slider package is used to iterate functions over 3 moving windows of the \$Measure data:
+
+-   Cum - the current row and all previous rows.
+
+-   Lst6 - the current row and the previous 5 rows.
+
+-   Ratio - the current value and previous value.
+
+The mean, sd, control limits and MSR are calculated for the Cum and Lst6 windows. The ratio is used to calculate the difference (log10(Measure~n~) - log10(Measure~n-1~) which becomes the ratio when the data is transformed back to linear.
+
+```{r}
+
+library(tidyverse)
+library(slider)
+
+# numdiff subtracts the value from the previous run when called within slider
+numdiff <- function(x) {
+  x[2] - x[1]
+}
+
+UsrData <- TestData %>% 
+  arrange(Run) %>% 
+  mutate(Measure = log10(Measure),
+         CumMean = slide_dbl(Measure, mean, .before = Inf),
+         CumSD = slide_dbl(Measure, sd, .before = Inf),
+         CumUCL = CumMean + 3 * CumSD,
+         CumLCL = CumMean - 3 * CumSD,
+         CumMSR = 2 * sqrt(2) * CumSD,
+         Lst6Mean = slide_dbl(Measure, mean, .before = 6, .complete = TRUE),
+         Lst6SD = slide_dbl(Measure, sd, .before = 6, .complete = TRUE),
+         Lst6UCL = Lst6Mean + 3 * Lst6SD,
+         Lst6LCL = Lst6Mean - 3 * Lst6SD,
+         Lst6MSR = 2 * sqrt(2) * Lst6SD,
+         Ratio = slide_dbl(Measure, numdiff, .before = 1, .complete = TRUE),
+         RatioUCL = 3 * CumSD,
+         RatioLCL = 3 * CumSD * (-1),
+         across(-Run, function(x) 10^x))
+
+
+UsrData
+
+```
+
+## Output
+
+### Cumulative Measure
+
+These plots are based on an expanding window which includes all of the potency measurements up to each run and will provide the best estimates of the overall variability. However, as the size of the data set increases, the sensitivity to outliers decreases in the MSR plot.
+
+``` {r}
+
+XLabel <- if_else(Dates, 'Date', 'Run')  
+
+CumRunPlot <- ggplot(UsrData, aes(x = Run, y = Measure)) +
+  geom_point() +
+  geom_line(aes(y = UsrData$CumMean, color = 'blue')) +
+  geom_hline(yintercept = tail(UsrData$CumMean, 1)) +
+  geom_line(aes(y = CumUCL, color = 'red'), linetype = 'dashed') +
+  geom_line(aes(y = CumLCL, color = 'red'), linetype ='dashed') +
+  scale_y_continuous(trans = "log10") +
+  labs(title = 'Cumulative Run Chart',
+       subtitle = UsrTitle,
+       y = 'Potency') +
+  theme_linedraw() +
+  theme(legend.position = 'none')
+
+CumMSRPlot <- ggplot(slice(UsrData, -(1:2)), aes(x = Run, y = CumMSR)) +
+  geom_point() +
+  geom_line(aes(color = 'blue')) +
+  geom_hline(yintercept = tail(UsrData$CumMSR, 1)) +
+  labs(title = 'Cumulative MSR Chart',
+       subtitle = UsrTitle,
+       y = 'MSR') +
+  theme_linedraw() +
+  theme(legend.position = 'none')
+
+CumRunPlot
+CumMSRPlot
+```
+
+### Last 6 Runs
+
+These plots are based on a moving window that includes the the 5 previous observations. Since the sample size is smaller there will be more variability in both the mean(Potency) and MSD values. The smaller sample size makes these plots more sensitive to detecting outliers.
+
+```{r} 
+
+Lst6RunPlot <- ggplot(UsrData, aes(x = Run, y = Measure)) +
+  geom_point() +
+  geom_line(aes(y = UsrData$Lst6Mean, color = 'blue')) +
+  geom_hline(yintercept = tail(UsrData$CumMean, 1)) +
+  geom_line(aes(y = Lst6UCL, color = 'red'), linetype = 'dashed') +
+  geom_line(aes(y = Lst6LCL, color = 'red'), linetype ='dashed') +
+  scale_y_continuous(trans = "log10") +
+  labs(title = '6 Previous Run Chart',
+       subtitle = UsrTitle,
+       y = 'Potency') +
+  theme_linedraw() +
+  theme(legend.position = 'none')  
+
+Lst6MSRPlot <- ggplot(UsrData, aes(x = Run, y = Lst6MSR)) +
+  geom_point() +
+  geom_line(aes(color = 'blue')) +
+  geom_hline(yintercept = tail(UsrData$CumMSR, 1)) +
+  labs(title = 'MSR (last 6 Runs) MSR Chart',
+       subtitle = UsrTitle,
+       y = 'MSR') +
+  theme_linedraw() +
+  theme(legend.position = 'none') 
+
+Lst6RunPlot
+Lst6MSRPlot
+```
+
+### Ratio plot
+
+This is the ratio of the potency divided by the previous potency value. Since this is the smallest sample window (n=2) it is the most sensitive to detecting outliers.
+
+```{r}
+RatioPlot <- ggplot(UsrData, aes(x = Run, y = Ratio)) +
+  geom_point() +
+  geom_hline(yintercept = 1) +
+  geom_line(aes(y = RatioUCL, color = 'red'), linetype = 'dashed') +
+  geom_line(aes(y = RatioLCL, color = 'red'), linetype ='dashed') +
+  scale_y_continuous(trans = "log10") +
+  labs(title = 'Ratio (Run/Previous Run) Chart',
+       subtitle = UsrTitle,
+       y = 'Ratio') +
+  theme_linedraw() +
+  theme(legend.position = 'none')  
+
+RatioPlot
+```
+
+### Summary Statistics
+
+```{r}
+
+DataSummary <- UsrData %>% 
+  summarise(across(where(is.numeric), list(Min = ~min(.x, na.rm = TRUE),
+                                             Max = ~max(.x, na.rm = TRUE), 
+                                             Last = ~last(.x)))) %>% 
+  pivot_longer((everything()), names_to = c('Column', 'Statistic'), names_sep = '_', values_to = 'Value' ) %>% 
+  pivot_wider(names_from = Column, values_from = Value) %>% 
+  mutate_if(is.numeric, ~round(., 2)) %>% 
+  select(-CumSD, -Lst6SD)
+DataSummary
+```
