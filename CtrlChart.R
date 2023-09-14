@@ -4,56 +4,71 @@
 library(tidyverse)
 library(slider)
 
-# Function to generate test data
+CChartConst <- read_csv('CtrlChtConst.csv')
 
-tstdata <- function(TrueMeas, TrueMSR, SmplSize, Dates = TRUE) {
+# Function to generate test data with the same number of replicates per run -----------------------------------------
+
+tstdata <- function(TrueMeas, TrueMSR, NumRun, NumRep, Dates = TRUE) {
   TrueMeas <- log10(TrueMeas)
   StdDev <- log10(TrueMSR) / (2 * sqrt(2))
   Run <- if(Dates){
-    seq(from = mdy('1/1/2023'), by = '1 week', length.out = SmplSize)
-  } else {c(1:SmplSize)}
+    seq(from = mdy('1/1/2023'), by = '1 week', length.out = NumRun)
+  } else {c(1:NumRun)}
   
-  Measure <- rnorm(n = SmplSize, mean = TrueMeas, sd = StdDev)
+  Data <- rnorm(n = NumRun * NumRep, mean = TrueMeas, sd = StdDev)
+  Run <- rep(Run, each = NumRep)
+  Replicate <- rep(1:NumRep, times = NumRun)
   
-  Output <- tibble(Run, Measure) %>% 
-    mutate(Measure = 10 ^ Measure)
+  Output <- if (NumRep == 1)  {
+    tibble(Run, Data) %>% 
+      mutate(Data = 10 ^ Data)
+  }  else {
+    tibble(Run, Replicate, Data) %>% 
+    mutate(Data = 10 ^ Data)}
+  
+  FileName <- paste('TestData/cc_data', TrueMeas, TrueMSR, NumRun, NumRep, sep = '_' )
+  FileName <- paste0(FileName, ".csv")
+  write_csv(Output, file = FileName)
+  
+  Output
 }
 
-TestData <- tstdata(TrueMeas = 10, TrueMSR = 3, SmplSize = 50, Dates = TRUE)
+TestData <- tstdata(TrueMeas = 10, TrueMSR = 3, NumRun = 50, NumRep =1,  Dates = TRUE)
 
-write_csv(TestData,'TestData.csv')
+
 
 
 
 #-----------------------------------------------------------------------------------------------------
 # Functionality for web app
 
-# numdiff subtracts the value from the previous run when called within slider
-numdiff <- function(x) {
-  x[2] - x[1]
-}
+
+
+
 
 # User specifies if runs are identified by dates and a title for the generated output
 
 Dates = TRUE
 UsrTitle <- 'Potency 123456'
 
-# User uploads data - 2 columns Column 1 = Run number or date, Column 2 = Measurement
+# User uploads data - 2 columns Column 1 = Run number or date, LastColumn = Data.
+# An optional 2nd column can include a replicate identifier
+
 
 UsrData <- TestData %>% 
   arrange(Run) %>% 
-  mutate(Measure = log10(Measure),
-         CumMean = slide_dbl(Measure, mean, .before = Inf),
-         CumSD = slide_dbl(Measure, sd, .before = Inf),
+  mutate(Data = log10(Data),
+         CumMean = slide_dbl(Data, mean, .before = Inf),
+         CumSD = slide_dbl(Data, sd, .before = Inf),
          CumUCL = CumMean + 3 * CumSD,
          CumLCL = CumMean - 3 * CumSD,
          CumMSR = 2 * sqrt(2) * CumSD,
-         Lst6Mean = slide_dbl(Measure, mean, .before = 6, .complete = TRUE),
-         Lst6SD = slide_dbl(Measure, sd, .before = 6, .complete = TRUE),
+         Lst6Mean = slide_dbl(Data, mean, .before = 6, .complete = TRUE),
+         Lst6SD = slide_dbl(Data, sd, .before = 6, .complete = TRUE),
          Lst6UCL = Lst6Mean + 3 * Lst6SD,
          Lst6LCL = Lst6Mean - 3 * Lst6SD,
          Lst6MSR = 2 * sqrt(2) * Lst6SD,
-         Ratio = slide_dbl(Measure, numdiff, .before = 1, .complete = TRUE),
+         Ratio = slide_dbl(Data, numdiff, .before = 1, .complete = TRUE),
          RatioUCL = 3 * CumSD,
          RatioLCL = 3 * CumSD * (-1),
          across(-Run, function(x) 10^x))
@@ -61,12 +76,12 @@ UsrData <- TestData %>%
 # Create Graphs
 XLabel <- if_else(Dates, 'Date', 'Run')  
 
-CumRunPlot <- ggplot(UsrData, aes(x = Run, y = Measure)) +
+CumRunPlot <- ggplot(UsrData, aes(x = Run, y = Data)) +
   geom_point() +
-  geom_line(aes(y = UsrData$CumMean, color = 'blue')) +
+  geom_line(aes(y = UsrData$CumMean, color = 'mediumblue')) +
   geom_hline(yintercept = tail(UsrData$CumMean, 1)) +
-  geom_line(aes(y = CumUCL, color = 'red'), linetype = 'dashed') +
-  geom_line(aes(y = CumLCL, color = 'red'), linetype ='dashed') +
+  geom_line(aes(y = CumUCL, color = 'red2'), linetype = 'dashed') +
+  geom_line(aes(y = CumLCL, color = 'red2'), linetype ='dashed') +
   scale_y_continuous(trans = "log10") +
   labs(title = 'Cumulative Run Chart',
        subtitle = UsrTitle,
@@ -75,12 +90,12 @@ CumRunPlot <- ggplot(UsrData, aes(x = Run, y = Measure)) +
   theme(legend.position = 'none')
 
   
-Lst6RunPlot <- ggplot(UsrData, aes(x = Run, y = Measure)) +
+Lst6RunPlot <- ggplot(UsrData, aes(x = Run, y = Data)) +
   geom_point() +
-  geom_line(aes(y = UsrData$Lst6Mean, color = 'blue')) +
+  geom_line(aes(y = UsrData$Lst6Mean, color = 'mediumblue')) +
   geom_hline(yintercept = tail(UsrData$CumMean, 1)) +
-  geom_line(aes(y = Lst6UCL, color = 'red'), linetype = 'dashed') +
-  geom_line(aes(y = Lst6LCL, color = 'red'), linetype ='dashed') +
+  geom_line(aes(y = Lst6UCL, color = 'red2'), linetype = 'dashed') +
+  geom_line(aes(y = Lst6LCL, color = 'red2'), linetype ='dashed') +
   scale_y_continuous(trans = "log10") +
   labs(title = '6 Previous Run Chart',
        subtitle = UsrTitle,
@@ -90,7 +105,7 @@ Lst6RunPlot <- ggplot(UsrData, aes(x = Run, y = Measure)) +
 
 CumMSRPlot <- ggplot(slice(UsrData, -(1:2)), aes(x = Run, y = CumMSR)) +
   geom_point() +
-  geom_line(aes(color = 'blue')) +
+  geom_line(aes(color = 'mediumblue')) +
   geom_hline(yintercept = tail(UsrData$CumMSR, 1)) +
   labs(title = 'Cumulative MSR Chart',
        subtitle = UsrTitle,
@@ -101,7 +116,7 @@ CumMSRPlot <- ggplot(slice(UsrData, -(1:2)), aes(x = Run, y = CumMSR)) +
 
 Lst6MSRPlot <- ggplot(UsrData, aes(x = Run, y = Lst6MSR)) +
   geom_point() +
-  geom_line(aes(color = 'blue')) +
+  geom_line(aes(color = 'mediumblue')) +
   geom_hline(yintercept = tail(UsrData$CumMSR, 1)) +
   labs(title = 'MSR (last 6 Runs) MSR Chart',
        subtitle = UsrTitle,
@@ -112,9 +127,10 @@ Lst6MSRPlot <- ggplot(UsrData, aes(x = Run, y = Lst6MSR)) +
 
 RatioPlot <- ggplot(UsrData, aes(x = Run, y = Ratio)) +
   geom_point() +
+  geom_line(aes(color = 'mediumblue')) +
   geom_hline(yintercept = 1) +
-  geom_line(aes(y = RatioUCL, color = 'red'), linetype = 'dashed') +
-  geom_line(aes(y = RatioLCL, color = 'red'), linetype ='dashed') +
+  geom_line(aes(y = RatioUCL, color = 'red2'), linetype = 'dashed') +
+  geom_line(aes(y = RatioLCL, color = 'red2'), linetype ='dashed') +
   scale_y_continuous(trans = "log10") +
   labs(title = 'Ratio (Run/Previous Run) Chart',
        subtitle = UsrTitle,
