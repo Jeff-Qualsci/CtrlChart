@@ -30,5 +30,7 @@ tstdata <- function(TrueMeas, TrueMSR, NumRun, NumRep, Dates = TRUE) {
   Output
 }
 
-TestData <- tstdata(TrueMeas = 10, TrueMSR = 3, NumRun = 50, NumRep = 1,  Dates = TRUE)
+
+
+TestData <- tstdata(TrueMeas = 10, TrueMSR = 3, NumRun = 20, NumRep = 6,  Dates = TRUE)
 

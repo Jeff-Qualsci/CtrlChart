@@ -7,9 +7,11 @@ library(tidyverse)
 library(qicharts2)
 library(slider)
 
-# Control chart functions --------------------------------
-
 pow10 <- function(x) { 10 ^ x } # simplifies anitloging within other functions like across()
+
+# Minimum number of runs for the Window MSR.  Could be changed to a larger number in UI if approved.
+
+msrWindow <- 6
 
 # Basic control chart with log scale for y axis with center line and control limits -----------------
 # Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
@@ -28,39 +30,50 @@ log_ctrl_cht <- function(plotdata) {
 }
 
 # MSR Analysis and Charts -----------------------------------
-# Current version will be replaced in next version of code.
 
-msrchart <- function(runs, data,msrtype, usrtitle) {
+msr_calc <- function(workingData, usrTitle, msrWindow) {
   
-  MSRChart <- qic(x = runs,
-                  y = data, 
-                  chart = 'run',
-                  xlab = 'Run Date',
-                  ylab = msrtype,
-                  title = usrtitle)
-}
-
-msr_ind <- function(df) {
-  MSRData <- df %>% 
-      mutate(Lst6_sd = slide_dbl(Log10Data, sd, .before = 5, .complete = TRUE),
-             Lst6_MSR = 10 ^ (2 * sqrt(2) * Lst6_sd),
-             Cumm_sd = slide_dbl(Log10Data, sd, .before = Inf, .complete = TRUE),
-             Cumm_MSR = 10 ^ (2 * sqrt(2) * Cumm_sd)) %>% 
-      filter(row_number() >5)
-  }
+  workingData <- workingData %>% 
+    select(Run, Log10Pot)
   
-msr_rep <- function(df) {
-  startdate <- df$Run[5]
-  
-  MSRData <- df %>% 
-    mutate(Log10Data = log10(Data),
-           Cumm_sd = slide_dbl(Log10Data, sd, .before = Inf, .complete = TRUE),
-           Cumm_MSR = 10 ^ (2 * sqrt(2) * Cumm_sd)) %>% 
+  MsrCumm <- workingData %>% 
+    mutate(sd_Cumm = slide_dbl(Log10Pot, sd, .before = Inf),
+           MSR_Cumm = 10 ^ (2 * sqrt(2) * sd_Cumm)) %>% 
     group_by(Run) %>% 
-    summarise(Cumm_MSR = last(Cumm_MSR)) %>% 
-    ungroup() %>% 
-    filter(Run > startdate)
+    summarise(MSR_cumm = last(MSR_Cumm)) %>% 
+    ungroup()
+  
+  MsrWin <- workingData %>% 
+    nest(.by = Run) %>% 
+    mutate(WindowData = slide(data, list_c, .before = (msrWindow - 1))) %>% 
+    unnest(WindowData) %>% 
+    group_by(Run) %>% 
+    summarise(sd_window = sd(Log10Pot),
+              MSR_window = 10 ^ (2 * sqrt(2) * sd_window)) %>% 
+    ungroup()
+  
+  MsrData <- MsrCumm %>% 
+    left_join(MsrWin) %>% 
+    select(-contains('sd')) %>% 
+    mutate(across(starts_with('MSR'), ~signif(.x, digits = 3))) %>% 
+    filter(row_number() >= msrWindow)
+  
+  PlotData <- MsrData %>% 
+    pivot_longer(cols = starts_with('MSR'), names_to = 'MSR_type', names_prefix = 'MSR_', values_to = 'MSR') %>%
+    mutate(MSR_type = if_else(MSR_type == 'cumm', 'Cummulative', paste0('Last ', msrWindow, ' Runs')))
+  
+  MsrChart <- ggplot(PlotData, aes(x = Run, y = MSR, group = MSR_type, color = MSR_type)) +
+    geom_line() +
+    labs(title = 'MSR Chart',
+         subtitle = usrTitle,
+         y = 'MSR',
+         x = 'Run') +
+    theme_linedraw() +
+    theme(legend.position = 'right')
+
+  MsrChartReport <- list(MSRData = MsrData, MSRChart = MsrChart)
 }
+
 
 # Individual Data Analysis ---------------------------
 ind_charts <- function(usrdata, usrtitle) {
@@ -70,12 +83,11 @@ ind_charts <- function(usrdata, usrtitle) {
     group_by(Run) %>% 
     summarise(Data = first(Data)) %>% 
     ungroup() %>% 
-    mutate(Log10Data = log10(Data),
-           MRLog = abs(slide_dbl(Log10Data, diff, .before = 1, .complete = TRUE)),
+    mutate(MRLog = abs(slide_dbl(Log10Pot, diff, .before = 1, .complete = TRUE)),
            FMR = pow10(MRLog))
   
   # Individual Chart (DataChart)
-  IChartSumm <- summary(qic(ChartData$Run, ChartData$Log10Data, chart = 'i'))
+  IChartSumm <- summary(qic(ChartData$Run, ChartData$Log10Pot, chart = 'i'))
   IChartStats <- as_tibble(IChartSumm) 
   IChartStats <- IChartStats %>% 
     mutate(across(contains('CL'), pow10),
@@ -117,42 +129,23 @@ ind_charts <- function(usrdata, usrtitle) {
   MRChart <- MRChart +
     labs(title = paste0('Fold Moving Range Chart - ', usrtitle),
          y = 'Fold Moving Range')
-
-  MSRData <- msr_ind(ChartData) 
-
-  CummMSRChart <- msrchart(runs = MSRData$Run,
-             data = MSRData$Cumm_MSR,
-             msrtype = 'Cummulative MSR',
-             usrtitle = paste0('Run Chart Cummulative MSR ', usrtitle))
-
-  CummMSRSumm <-summary(CummMSRChart)
-
-  Lst6MSRChart <-  msrchart(runs = MSRData$Run,
-             data = MSRData$Lst6_MSR,
-             msrtype = 'MSR(last 6 Runs)',
-             usrtitle = paste0('Run Chart MSR(last 6 Runs) ', usrtitle))
-
-  Lst6MSRSumm <- summary(Lst6MSRChart)
-  
-  Output <- list(ChartData = ChartData, DataChart = IChart, DataChartStats = IChartStats, VarChart = MRChart, VarChartStats = MRChartStats, MSRData = MSRData, Lst6MSRChart = Lst6MSRChart, Lst6MSRSumm = Lst6MSRSumm, CummMSRChart = CummMSRChart, CummMSRSumm = CummMSRSumm)
+ 
+  Output <- list(ChartData = ChartData, DataChart = IChart, DataChartStats = IChartStats, VarChart = MRChart, VarChartStats = MRChartStats)
 }
 
 # Replicate Standard Deviation Charts ------------------------
 
 xbars_charts <- function(usrdata, usrtitle) {
   
-  usrdata <- usrdata %>% 
-    mutate(Log10Data = log10(Data))
-  
   ChartData <- usrdata %>% 
     group_by(Run) %>% 
-    summarise(Data = mean(Log10Data),
-              FSD = sd(Log10Data)) %>% 
+    summarise(Data = mean(Log10Pot),
+              FSD = sd(Log10Pot)) %>% 
     ungroup() %>% 
     mutate(across(!Run, pow10))
   
   # Xbar Chart (DataChart)
-  XbarChartSumm <- summary(qic(usrdata$Run, usrdata$Log10Data, chart = 'xbar'))
+  XbarChartSumm <- summary(qic(usrdata$Run, usrdata$Log10Pot, chart = 'xbar'))
   XbarChartStats <- as_tibble(XbarChartSumm) 
   XbarChartStats <- XbarChartStats %>% 
     mutate(across(contains('CL'), pow10),
@@ -174,7 +167,7 @@ xbars_charts <- function(usrdata, usrtitle) {
   
   # S Chart (VarChart)
   
-  SChartSumm <- summary(qic(usrdata$Run, usrdata$Log10Data, chart = 's'))
+  SChartSumm <- summary(qic(usrdata$Run, usrdata$Log10Pot, chart = 's'))
   SChartStats <- as_tibble(SChartSumm) 
   SChartStats <- SChartStats %>% 
     mutate(across(contains('CL'), pow10),
@@ -193,36 +186,35 @@ xbars_charts <- function(usrdata, usrtitle) {
   SChart <- log_ctrl_cht(plotdata = PlotData)
   SChart <- SChart +
     labs(title = paste0('S Chart - ', usrtitle),
-         y =
-           
-           )
-  
-  MSRData <- msr_rep(usrdata)
-  
-  CummMSRChart <- msrchart(runs = MSRData$Run,
-                           data = MSRData$Cumm_MSR,
-                           msrtype = 'Cummulative MSR',
-                           usrtitle = paste0('Run Chart Cummulative MSR ', usrtitle))
-  
-  CummMSRSumm <- summary(CummMSRChart) 
-  
-  Output <- list(ChartData = ChartData, DataChart = XbarChart, DataChartStats = XbarChartStats, VarChart = SChart, VarChartStats = SChartStats, MSRData = MSRData, CummMSRChart = CummMSRChart, CummMSRSumm = CummMSRSumm)
+         y = 'Fold Std. Dev.')
+ 
+  Output <- list(ChartData = ChartData, DataChart = XbarChart, DataChartStats = XbarChartStats, VarChart = SChart, VarChartStats = SChartStats)
 }
 
-
 # Client outline ----------------------------------------
-# User specifies if runs are identified by dates and a title for the generated output
-UsrTitle <- 'Potency 123456'
+# User specifies if runs are identified by dates and a title for the generated output. 
+# File must contain at least 2 columns.
+# First column 'Run' identifies a specific experiment (Run) and should be a date(recommended) or a string.
+# Second column 'Data' contains the potency values for the reference compound and should be a dbl
+# Optional 3rd column to label the replicates within each run (user convenience only, not used in analysis)
+
+# Specify label for output
+usrTitle <- 'Potency 123456'
 
 # Import data and check file
-UsrData <- read_csv(file = 'TestData/cc_data_10_3_50_1.csv')
+usrData <- read_csv(file = 'TestData/cc_data_10_3_50_6.csv')
 
 # Prepare data for charting
-UsrData <- if (is.Date(UsrData$Run)){UsrData %>% 
-    arrange(Run ) }
+usrData <- usrData %>% 
+  mutate(Log10Pot = log10(Data))
+
+
+usrData <- if (is.Date(usrData$Run)) {
+  arrange(usrData, Run)
+}
 
 # Determine number of replicates to select charts to create
-RepCount <- UsrData %>% 
+repCount <- usrData %>% 
   group_by(Run) %>% 
   summarise(Reps = n(),
             Ind = Reps == 1) %>% 
@@ -232,16 +224,18 @@ RepCount <- UsrData %>%
 # A string is assigned, in case > 2 options desired for future development (e.g. range vs SD charts for rep data)
 # Decided 11/9/23 not to implement. Keeping ChartType to potentially give users options to chose either or both chart types when data is a mixture of replicates and individual.
 
-ChartType <- if (max(RepCount$Reps) == 1 | sum(RepCount$Ind) / length(RepCount) > 0.4) {'ind'
+chartType <- if (max(repCount$Reps) == 1 | sum(repCount$Ind) / length(repCount) > 0.49) {'ind'
 } else {'rep'} 
 
-CtrlChtReport <- if (ChartType == 'ind') {
-  ind_charts(UsrData, UsrTitle)
+CtrlChtReport <- if (chartType == 'ind') {
+  ind_charts(usrData, usrTitle)
 } else{
-  xbars_charts(UsrData, UsrTitle)
+  xbars_charts(usrData, usrTitle)
 }
 
-
+MsrChartReport <- if (length(repCount$Run) < msrWindow) {
+  paste0('At least ', msrWindow, ' runs are required to calculate MSR.')
+  } else {msr_calc(usrData, usrTitle, msrWindow)}
 
 
 

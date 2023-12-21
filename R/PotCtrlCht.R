@@ -107,10 +107,8 @@ msr <- function(df, startdate, usrtitle) {
 # User specifies if runs are identified by dates and a title for the generated output
 UsrTitle <- 'Potency 123456'
 
-
-CtrlCharts["SChart"]
 # Import data and check file
-UsrData <- read_csv(file = 'TestData/cc_data_10_3_50_3.csv')
+UsrData <- read_csv(file = 'TestData/cc_data_10_3_50_1.csv')
 
 
 # Prepare data for charting
@@ -138,19 +136,19 @@ MSRChart <- if (length(RepCount > 5)) {
 
 # Generate Report------------------------------
 
-UsrData
-
-CtrlCharts["XbarChart"]
-
-CtrlCharts["XBarSumm"]
-
-CtrlCharts["SChartSumm"]
-
-MSRChart["MSRData"]
-
-MSRChart["CummMSRChart"]
-
-MSRChart["CummMSRSumm"]
+# UsrData
+# 
+# CtrlCharts["XbarChart"]
+# 
+# CtrlCharts["XBarSumm"]
+# 
+# CtrlCharts["SChartSumm"]
+# 
+# MSRChart["MSRData"]
+# 
+# MSRChart["CummMSRChart"]
+# 
+# MSRChart["CummMSRSumm"]
 
 
 
