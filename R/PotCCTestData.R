@@ -1,36 +1,47 @@
 # Generate test data for potency control charting application
 library(tidyverse)
 
-# Function to generate test data with the same number of replicates per run -----------------
+# Generate n random potency values consistent with true potency and MSR --------------------
+# inputs and outputs are on the linear scale
 
-tstdata <- function(TrueMeas, TrueMSR, NumRun, NumRep, Dates = TRUE) {
+pot_gen <- function(n, Pot, Msr) {
+  10 ^ (rnorm(n = n, mean = log10(Pot), sd = (log10(Msr) / (2 * sqrt(2)))))
+}
+
+# Function to generate test data with the same number of replicates per run -----------------
+# inputs and outputs are on the linear scale
+# truePot = expected mean potency value
+# trueMsr = expected Minimum Significant Ratio
+# numRuns the number of experiments simulated
+# maxReps the number of replicates per run if varReps is FALSE
+# dates if TRUE generates a a sequence of dates for the Run identifier, if FALSE an integer sequence is generated
+# varReps if TRUE generates a random number of replicates within each run between 1:maxReps, if FALSE all runs get the number of replicates specified in maxReps
+
+tstdata <- function(truePot, trueMsr, numRuns, maxReps, varReps = TRUE, dates = TRUE) {
   
-  FileName <- paste('TestData/cc_data', TrueMeas, TrueMSR, NumRun, NumRep, sep = '_' )
+  varFile <- ifelse(varReps, 'V', 'C')
+  FileName <- paste('TestData/cc_data', truePot, trueMsr, numRuns, maxReps, varFile, sep = '_' )
   FileName <- paste0(FileName, ".csv")
   
-  TrueMeas <- log10(TrueMeas)
-  StdDev <- log10(TrueMSR) / (2 * sqrt(2))
-  Run <- if(Dates){
-    seq(from = mdy('1/1/2023'), by = '1 week', length.out = NumRun)
+  Run <- if(dates){
+    seq(from = mdy('1/1/2023'), by = '1 week', length.out = numRuns)
   } else {c(1:NumRun)}
   
-  Data <- rnorm(n = NumRun * NumRep, mean = TrueMeas, sd = StdDev)
-  Run <- rep(Run, each = NumRep)
-  Replicate_ID <- rep(1:NumRep, times = NumRun)
+  Data <- vector('list', length = length(Run))
   
-  Output <- if (NumRep == 1)  {
-    tibble(Run, Data) %>% 
-      mutate(Data = 10 ^ Data)
-  }  else {
-    tibble(Run, Replicate_ID, Data) %>% 
-      mutate(Data = 10 ^ Data)}
+  for (i in seq_along(Run)) {
+    Reps <- ifelse(varReps, sample(1:maxReps, 1), maxReps)  
+    Data[[i]] <- pot_gen(n = Reps, Pot = truePot, Msr = trueMsr)
+  }
+  
+  Output <- tibble(Run, Data) %>% 
+    unnest(Data)
   
   write_csv(Output, file = FileName)
   
   Output
 }
 
+# Generate Data ----------------------------------------
 
-
-TestData <- tstdata(TrueMeas = 10, TrueMSR = 3, NumRun = 20, NumRep = 6,  Dates = TRUE)
-
+TestData <- tstdata(truePot = 1, trueMsr =  3.5, numRuns =  30, maxReps = 1, varReps = FALSE, dates = TRUE)
