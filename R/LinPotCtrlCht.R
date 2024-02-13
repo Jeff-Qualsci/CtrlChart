@@ -31,7 +31,7 @@ log_ctrl_cht <- function(plotdata) {
 
 # MSR Analysis and Charts -----------------------------------
 
-msr_calc <- function(workingData, usrTitle, msrWindow) {
+msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
   
   workingData <- workingData %>% 
     select(Run, Log10Pot)
@@ -81,7 +81,8 @@ ind_charts <- function(usrdata, usrtitle) {
 # Remove any n > 1 replicates, transform the data for control Chart analysis and moving range (MR) calculation
     ChartData <- usrdata %>% 
     group_by(Run) %>% 
-    summarise(Data = first(Data)) %>% 
+    summarise(Data = first(Data),
+              Log10Pot = first(Log10Pot)) %>% 
     ungroup() %>% 
     mutate(MRLog = abs(slide_dbl(Log10Pot, diff, .before = 1, .complete = TRUE)),
            FMR = pow10(MRLog))
@@ -130,7 +131,7 @@ ind_charts <- function(usrdata, usrtitle) {
     labs(title = paste0('Fold Moving Range Chart - ', usrtitle),
          y = 'Fold Moving Range')
  
-  Output <- list(ChartData = ChartData, DataChart = IChart, DataChartStats = IChartStats, VarChart = MRChart, VarChartStats = MRChartStats)
+  Output <- list(IChartData = ChartData, IChart = IChart, IChartStats = IChartStats, MRChart = MRChart, MRChartStats = MRChartStats)
 }
 
 # Replicate Standard Deviation Charts ------------------------
@@ -173,6 +174,8 @@ xbars_charts <- function(usrdata, usrtitle) {
     mutate(across(contains('CL'), pow10),
            across(contains('CL'), ~ signif(.x, digits = 3)))
   
+  singlets <- sum(is.na(ChartData$FSD)) # number of singlet runs with missing FSD values
+  
   PlotData <- ChartData %>% 
     select(Run, FSD) %>% 
     rename(Data = FSD) %>% 
@@ -186,9 +189,15 @@ xbars_charts <- function(usrdata, usrtitle) {
   SChart <- log_ctrl_cht(plotdata = PlotData)
   SChart <- SChart +
     labs(title = paste0('S Chart - ', usrtitle),
-         y = 'Fold Std. Dev.')
+         y = 'Fold Std. Dev.',
+         caption = paste('*', singlets, 'missing values from runs with a single replicate.'))
+  
+  message <- if (singlets > 0) {
+    
+    paste(singlets, "runs contained only 1 replicate. You may want to also run an Individuals analysis to assess the variability.")
+  }
  
-  Output <- list(ChartData = ChartData, DataChart = XbarChart, DataChartStats = XbarChartStats, VarChart = SChart, VarChartStats = SChartStats)
+  Output <- list(XbarChartData = ChartData, XbarChart = XbarChart, XbarChartStats = XbarChartStats, SChart = SChart, SChartStats = SChartStats, Message = message)
 }
 
 # Client outline ----------------------------------------
@@ -199,10 +208,12 @@ xbars_charts <- function(usrdata, usrtitle) {
 # Optional 3rd column to label the replicates within each run (user convenience only, not used in analysis)
 
 # Specify label for output
-usrTitle <- 'Potency 123456'
+usrTitle <- 'Replicate Data'
+
+
 
 # Import data and check file
-usrData <- read_csv(file = 'TestData/cc_data_10_3_50_6.csv')
+  usrData <- read_csv(file = 'TestData/cc_data_10_4_75_3_C.csv')
 
 # Prepare data for charting
 usrData <- usrData %>% 
@@ -221,15 +232,15 @@ repCount <- usrData %>%
   ungroup()
 
 # Determine which types of charts to use. 
-# A string is assigned, in case > 2 options desired for future development (e.g. range vs SD charts for rep data)
-# Decided 11/9/23 not to implement. Keeping ChartType to potentially give users options to chose either or both chart types when data is a mixture of replicates and individual.
 
-chartType <- if (max(repCount$Reps) == 1 | sum(repCount$Ind) / length(repCount) > 0.49) {'ind'
-} else {'rep'} 
+chartType <- ifelse(max(repCount$Reps) == 1 | sum(repCount$Ind) / length(repCount$Run) > 0.49, 'ind',
+                    ifelse(min(repCount$Reps) >1, 'rep', 'both'))
 
-CtrlChtReport <- if (chartType == 'ind') {
-  ind_charts(usrData, usrTitle)
-} else{
+IndChtReport <- if (chartType %in% c('ind', 'both')) {
+  ind_charts(usrdata = usrData, usrtitle = usrTitle)
+} 
+
+RepChtReport <- if (chartType %in% c('rep', 'both')) {
   xbars_charts(usrData, usrTitle)
 }
 
@@ -238,5 +249,42 @@ MsrChartReport <- if (length(repCount$Run) < msrWindow) {
   } else {msr_calc(usrData, usrTitle, msrWindow)}
 
 
+# Write Report files - for development - Replace with code for usr display and download of charts and data
 
+# Create directory for report files
+ReportDir <- paste0('UsrReports/', usrTitle)
+dir.create(ReportDir)
 
+switch(chartType,
+       ind = {
+         write_csv(IndChtReport$IChartData, file = paste0(ReportDir, '/', 'IChartData.csv'))
+         write_csv(IndChtReport$IChartStats, file = paste0(ReportDir, '/', 'IChartStats.csv'))
+         write_csv(IndChtReport$MRChartStats, file = paste0(ReportDir, '/', 'MRChartStats.csv'))
+         write_csv(MsrChartReport$MSRData, file = paste0(ReportDir, '/', 'MSRData.csv'))
+         ggsave(filename = paste0(ReportDir, '/', 'IRChart.png'), plot = IndChtReport$IChart, height = 4, width = 6, units = "in")
+         ggsave(filename = paste0(ReportDir, '/', 'MRChart.png'), plot = IndChtReport$MRChart, height = 4, width = 6, units = "in")
+         ggsave(filename = paste0(ReportDir, '/', 'MSRChart.png'), plot = MsrChartReport$MSRChart, height = 4, width = 6, units = "in")
+       },
+       rep = {
+         write_csv(RepChtReport$XbarChartData, file = paste0(ReportDir, '/', 'XbarChartData.csv'))
+         write_csv(RepChtReport$XbarChartStats, file = paste0(ReportDir, '/', 'XbarChartStats.csv'))
+         write_csv(RepChtReport$SChartStats, file = paste0(ReportDir, '/', 'SChartStats.csv'))
+         write_csv(MsrChartReport$MSRData, file = paste0(ReportDir, '/', 'MSRData.csv'))
+         ggsave(filename = paste0(ReportDir, '/', 'XbarChart.png'), plot = RepChtReport$XbarChart, height = 4, width = 6, units = "in")
+         ggsave(filename = paste0(ReportDir, '/', 'SChart.png'), plot = RepChtReport$SChart, height = 4, width = 6, units = "in")
+         ggsave(filename = paste0(ReportDir, '/', 'MSRChart.png'), plot = MsrChartReport$MSRChart, height = 4, width = 6, units = "in")
+       },
+       both = {
+         write_csv(IndChtReport$IChartData, file = paste0(ReportDir, '/', 'IChartData.csv'))
+         write_csv(IndChtReport$IChartStats, file = paste0(ReportDir, '/', 'IChartStats.csv'))
+         write_csv(IndChtReport$MRChartStats, file = paste0(ReportDir, '/', 'MRChartStats.csv'))
+         ggsave(filename = paste0(ReportDir, '/', 'IRChart.png'), plot = IndChtReport$IChart, height = 4, width = 6, units = "in")
+         ggsave(filename = paste0(ReportDir, '/', 'MRChart.png'), plot = IndChtReport$MRChart, height = 4, width = 6, units = "in")
+         write_csv(RepChtReport$XbarChartData, file = paste0(ReportDir, '/', 'XbarChartData.csv'))
+         write_csv(RepChtReport$XbarChartStats, file = paste0(ReportDir, '/', 'XbarChartStats.csv'))
+         write_csv(RepChtReport$SChartStats, file = paste0(ReportDir, '/', 'SChartStats.csv'))
+         ggsave(filename = paste0(ReportDir, '/', 'XbarChart.png'), plot = RepChtReport$XbarChart, height = 4, width = 6, units = "in")
+         ggsave(filename = paste0(ReportDir, '/', 'SChart.png'), plot = RepChtReport$SChart, height = 4, width = 6, units = "in")
+         write_csv(MsrChartReport$MSRData, file = paste0(ReportDir, '/', 'MSRData.csv'))
+         ggsave(filename = paste0(ReportDir, '/', 'MSRChart.png'), plot = MsrChartReport$MSRChart, height = 4, width = 6, units = "in")
+       })
