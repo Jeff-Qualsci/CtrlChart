@@ -13,11 +13,12 @@ pot_gen <- function(n, Pot, Msr) {
 # truePot = expected mean potency value
 # trueMsr = expected Minimum Significant Ratio
 # numRuns the number of experiments simulated
+
 # maxReps the number of replicates per run if varReps is FALSE
 # dates if TRUE generates a a sequence of dates for the Run identifier, if FALSE an integer sequence is generated
 # varReps if TRUE generates a random number of replicates within each run between 1:maxReps, if FALSE all runs get the number of replicates specified in maxReps
 
-tstdata <- function(truePot, trueMsr, numRuns, maxReps, varReps = TRUE, dates = TRUE) {
+tstdata <- function(truePot, trueMsr, numRuns, minReps,  maxReps, varReps = TRUE, dates = TRUE) {
   
   varFile <- ifelse(varReps, 'V', 'C')
   FileName <- paste('TestData/cc_data', truePot, trueMsr, numRuns, maxReps, varFile, sep = '_' )
@@ -30,7 +31,7 @@ tstdata <- function(truePot, trueMsr, numRuns, maxReps, varReps = TRUE, dates = 
   Data <- vector('list', length = length(Run))
   
   for (i in seq_along(Run)) {
-    Reps <- ifelse(varReps, sample(1:maxReps, 1), maxReps)  
+    Reps <- ifelse(varReps, sample(minReps:maxReps, 1), maxReps)  
     Data[[i]] <- pot_gen(n = Reps, Pot = truePot, Msr = trueMsr)
   }
   
@@ -44,4 +45,4 @@ tstdata <- function(truePot, trueMsr, numRuns, maxReps, varReps = TRUE, dates = 
 
 # Generate Data ----------------------------------------
 
-TestData <- tstdata(truePot = 1, trueMsr =  3.5, numRuns =  30, maxReps = 1, varReps = FALSE, dates = TRUE)
+TestData <- tstdata(truePot = 25, trueMsr =  3.5, numRuns =  75,  minReps = 2, maxReps = 6, varReps = TRUE, dates = TRUE)
