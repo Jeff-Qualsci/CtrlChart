@@ -32,7 +32,7 @@ check_run <- function(df) {
   noErrMsg <- 'Pass, data is in control.'
   Err1Msg <- 'Data is out of control and should be investigated for cause (see chart data).'
   ClMsg <- 'TRUE values in the sigma.signal column indicate the run is outside of the control limits.'
-  RunMsg <- 'TRUE values in the runs.signal column indicate too many consecutive runs without crossing the center line.'
+  RunMsg <- 'TRUE values in the runs.signal column indicate other possible issues.'
   
   clErr <- sum(df$sigma.signal)
   runErr <- sum(df$runs.signal)
@@ -228,10 +228,10 @@ xbars_charts <- function(usrdata, usrtitle) {
 # Optional 3rd column to label the replicates within each run (user convenience only, not used in analysis)
 
 # Specify label for output
-usrTitle <- 'New Variable Reps Min2'
+usrTitle <- 'New Mixed Data'
 
 # Import data and check file
-  usrData <- read_csv(file = 'TestData/cc_data_25_3.5_75_6_V.csv')
+  usrData <- read_csv(file = 'TestData/cc_data_5_3_50_6_V.csv')
 
 usrData <- if (is.Date(usrData$Run)) {
   arrange(usrData, Run)
