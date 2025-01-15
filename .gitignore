@@ -54,3 +54,9 @@ Deprecated/
 Reports/
 UsrReports/
 plots/
+Status_Reports/
+
+# qmd knit output files
+CtrlChtDoc.pdf
+CtrlChtDoc.html
+CtrlChtDoc_files

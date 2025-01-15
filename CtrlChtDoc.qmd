@@ -1,0 +1,39 @@
+---
+title: "Control Charting"
+author: "Jeffrey Weidner"
+format: 
+  pdf: 
+    toc: true
+    toc-depth: 3
+execute:
+  echo: false
+  messages:  false
+  warning: false
+  error: false
+bibliography: references.bib
+editor: visual
+---
+
+## Introduction
+
+Control charts were originally developed by Walter Shewart[@shewhart1926]at Bell Labs as a tool to monitor the quality of a process over time and are commonly used in many fields. In it's most basic form, a measurement of a process characteristic is made repeatedly over time. If the process is reproducible, then these measurements should show only normal random variation within an acceptable range. Additionally the variation between different measurement samples should also be normally distributed. When both of these conditions are met, the process in said to be **in control**. Control charts may also provide signals to potential issues which can be addressed before they become serious enough to cause a failure.
+
+Before moving an assay into routine operation, it is important to have some initial measurement of it's inherent variability, such as the [replicate experiment]{.underline} [@iversen2004] (note to Dante: could we link the underlined text directly to the replicate experiment web tool) to demonstrate reproducibility across 2 runs.
+
+This tool focuses on the use of control charts to monitor assay performance in a biological laboratory using potency of a reference coumpound as the standard measurement. Data from these assays may be generated across extended periods of time (months to years) and it's crucial to document that the data collected across the lifetime of an assay is consistent and the data for non-reference compounds should be comparable.
+
+## Control Chart Basics
+
+Control charts are used to identify runs that may not be consistent with the previous behavior of a process. If a process is reproducible, then all of the output from that process could be thought of as a statistical population with each iteration of the process being a sample of the process. Then the statistics (mean and standard deviation) for those samples represent estimates of their population equivalents and should be normally distributed. Sample statistics outside of a given range can then be flagged as potentially "out of control", or inconsistent with the expectations for the process. Additionally, if the samples are in sequential order, then conditional probabilities can also be used to flag the process as being **out of control.**
+
+In Statistical Process Control, the general standard is to use p \< 0.01 to flag a process as being **out of control**. This is intended to minimize the impact of random outliers on the process.
+
+## Reference compound(s).
+
+A reference compound refers to a molecule which is tested in every experimental run of an assay. This compound may be tested once per run, on every plate in a run, or on multiple plates in a run, depending on the characteristics of the assay and it's sample capacity. A reference compound should be prepared and used in the assay as if it were any of the test compounds. It should exhibit a full sigmoidal dose response curve ( well defined top, bottom, and AC~50~) within the dynamic range of the assay, for the most reproducible potency determinations. If a single reference compound is used, it is also recommended that it's potency near the lower limit of the current potency range, since the potency of test compounds tends to improve over time. Finally there should be an ample supply of the reference compound, so that it can be used over a large number of runs.
+
+While a single reference compound is sufficient, many assays use multiple reference compounds. When multiple reference compounds are used, they should have different potencies and ideally be in different chemical classes. In addition to improved quality control, multiple reference compounds may identify issues specific to a chemical class and allow for a transition of reference compounds over time as the SAR evolves and the potency range of the assay may need to change.
+
+1.  If multiple reference compounds are used, then a separate control chart should be kept for each compound. If a change in reference compounds is anticipated, then the new reference compound should be run in parallel with the existing reference compound for at least 6 runs.
+
+## 
