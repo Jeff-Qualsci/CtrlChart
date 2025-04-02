@@ -1,11 +1,47 @@
-# Base functionality for AGM Potency Control Charting App
-
-# Server 
 # Environment set up-------------------------------------
 
 library(tidyverse)
 library(qicharts2)
 library(slider)
+
+
+
+# Generate n random potency values consistent with true potency and MSR --------------------
+# inputs and outputs are on the linear scale
+
+pot_gen <- function(n, Pot, Msr) {
+  10 ^ (rnorm(n = n, mean = log10(Pot), sd = (log10(Msr) / (2 * sqrt(2)))))
+}
+
+# Function to generate test data with the same number of replicates per run -----------------
+# inputs and outputs are on the linear scale
+# truePot = expected mean potency value
+# trueMsr = expected Minimum Significant Ratio
+# numRuns the number of experiments simulated
+
+# maxReps the number of replicates per run if varReps is FALSE
+# dates if TRUE generates a a sequence of dates for the Run identifier, if FALSE an integer sequence is generated
+# varReps if TRUE generates a random number of replicates within each run between 1:maxReps, if FALSE all runs get the number of replicates specified in maxReps
+
+tstdata <- function(truePot, trueMsr, numRuns, minReps,  maxReps, varReps = TRUE, dates = TRUE) {
+  
+  Run <- if(dates){
+    seq(from = mdy('1/1/2023'), by = '1 week', length.out = numRuns)
+  } else {c(1:NumRun)}
+  
+  Data <- vector('list', length = length(Run))
+  
+  for (i in seq_along(Run)) {
+    Reps <- ifelse(varReps, sample(minReps:maxReps, 1), maxReps)
+    Data[[i]] <- pot_gen(n = Reps, Pot = truePot, Msr = trueMsr)
+  }
+  
+  Output <- tibble(Run, Data) %>% 
+    unnest(Data)
+  
+  Output
+}
+
 
 pow10 <- function(x) { 10 ^ x } # simplifies anitloging within other functions like across()
 
@@ -64,6 +100,26 @@ plot_data <- function(df) {
                            if_else(Line == 'CL', 'Center Line', 'Control Limit')))
 }
 
+# Basic control chart with center line and control limits -----------------
+# Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
+# This requires data for the plot to be in tidy format (tall) with all y values in the same column and a separate column to specify the groups.
+# Specific axis and chart labels are applied within the data analysis functions.
+
+ctrl_cht <- function(plotdata) {
+  
+  Report <- check_run(plotdata)
+  
+  plotdata <- plot_data(plotdata)
+  
+  ggplot(plotdata, aes(x = Run, y = Data, group = Line, color = Lines)) +
+    geom_line() +
+    geom_point(data = plotdata %>% filter(Line == 'Data'), show.legend = FALSE) +
+    scale_colour_manual(values = c('Data'= 'black', 'Center Line' = 'mediumblue', 'Control Limit' = 'red')) +
+    labs(caption = Report) +
+    theme_light() +
+    theme(legend.position = 'right')
+  
+}
 
 # Basic control chart with log scale for y axis with center line and control limits -----------------
 # Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
@@ -93,11 +149,11 @@ msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
   workingData <- workingData %>% 
     mutate(Log10Pot = log10(Data))
   
-  MsrCumm <- workingData %>% 
-    mutate(sd_Cumm = slide_dbl(Log10Pot, sd, .before = Inf),
-           MSR_Cumm = 10 ^ (2 * sqrt(2) * sd_Cumm)) %>% 
+  MsrCum <- workingData %>% 
+    mutate(sd_Cum = slide_dbl(Log10Pot, sd, .before = Inf),
+           MSR_Cum = 10 ^ (2 * sqrt(2) * sd_Cum)) %>% 
     group_by(Run) %>% 
-    summarise(MSR_cumm = last(MSR_Cumm)) %>% 
+    summarise(MSR_Cum = last(MSR_Cum)) %>% 
     ungroup()
   
   MsrWin <- workingData %>% 
@@ -109,7 +165,7 @@ msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
               MSR_window = 10 ^ (2 * sqrt(2) * sd_window)) %>% 
     ungroup()
   
-  MsrData <- MsrCumm %>% 
+  MsrData <- MsrCum %>% 
     left_join(MsrWin) %>% 
     select(-contains('sd')) %>% 
     mutate(across(starts_with('MSR'), ~signif(.x, digits = 3))) %>% 
@@ -117,7 +173,7 @@ msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
   
   PlotData <- MsrData %>% 
     pivot_longer(cols = starts_with('MSR'), names_to = 'MSR_type', names_prefix = 'MSR_', values_to = 'MSR') %>%
-    mutate(MSR_type = if_else(MSR_type == 'cumm', 'Cummulative', paste0('Last ', msrWindow, ' Runs')))
+    mutate(MSR_type = if_else(MSR_type == 'Cum', 'Cumulative', paste0('Last ', msrWindow, ' Runs')))
   
   MsrChart <- ggplot(PlotData, aes(x = Run, y = MSR, group = MSR_type, color = MSR_type)) +
     geom_line() +
@@ -127,26 +183,26 @@ msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
          x = 'Run') +
     theme_linedraw() +
     theme(legend.position = 'right')
-
+  
   MsrChartReport <- list(MSRData = MsrData, MSRChart = MsrChart)
 }
 
 
 # Individual Data Analysis ---------------------------
 ind_charts <- function(usrdata, usrtitle) {
-
-# Remove any n > 1 replicates, transform the data for control Chart analysis and moving range (MR) calculation
-    usrdata <- usrdata %>% 
+  
+  # Remove any n > 1 replicates, transform the data for control Chart analysis and moving range (MR) calculation
+  usrdata <- usrdata %>% 
     group_by(Run) %>% 
     summarise(Data = first(Data)) %>% 
     ungroup()
   
   # Individual Chart (DataChart)
-    
-    IChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = 'i', return.data = TRUE)) %>%
-      qic_extract() %>% 
-      mutate(n = as.character(n),
-             across(where(is.numeric), pow10))
+  
+  IChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = 'i', return.data = TRUE)) %>%
+    qic_extract() %>% 
+    mutate(n = as.character(n),
+           across(where(is.numeric), pow10))
   
   IChart <- log_ctrl_cht(plotdata = IChartData)
   IChart <- IChart +
@@ -171,7 +227,7 @@ ind_charts <- function(usrdata, usrtitle) {
   MRChartData <- MRChartData %>% 
     rename(`MR(fold)` = Data)
   
- 
+  
   Output <- list(IChartData = IChartData, IChart = IChart, MRChart = MRChart, MRChartData = MRChartData)
 }
 
@@ -217,84 +273,7 @@ xbars_charts <- function(usrdata, usrtitle) {
     
     paste(singlets, "runs contained only 1 replicate. You may want to also run an Individuals analysis to assess the variability.")
   }
- 
+  
   Output <- list(XbarChartData = XbarChartData, XbarChart = XbarChart, SChart = SChart, SChartData = SChartData, Message = message)
 }
 
-# Client outline ----------------------------------------
-# User specifies if runs are identified by dates and a title for the generated output. 
-# File must contain at least 2 columns.
-# First column 'Run' identifies a specific experiment (Run) and should be a date(recommended) or a string.
-# Second column 'Data' contains the potency values for the reference compound and should be a dbl
-# Optional 3rd column to label the replicates within each run (user convenience only, not used in analysis)
-
-# Specify label for output
-usrTitle <- 'New Mixed Data'
-
-# Import data and check file
-  usrData <- read_csv(file = 'TestData/cc_data_5_3_50_6_V.csv')
-
-usrData <- if (is.Date(usrData$Run)) {
-  arrange(usrData, Run)
-}
-
-# Determine number of replicates to select charts to create
-repCount <- usrData %>% 
-  group_by(Run) %>% 
-  summarise(Reps = n(),
-            Ind = Reps == 1) %>% 
-  ungroup()
-
-# Determine which types of charts to use. 
-
-chartType <- ifelse(max(repCount$Reps) == 1 | sum(repCount$Ind) / length(repCount$Run) > 0.49, 'ind',
-                    ifelse(min(repCount$Reps) >1, 'rep', 'both'))
-
-IndChtReport <- if (chartType %in% c('ind', 'both')) {
-  ind_charts(usrdata = usrData, usrtitle = usrTitle)
-} 
-
-RepChtReport <- if (chartType %in% c('rep', 'both')) {
-  xbars_charts(usrData, usrTitle)
-}
-
-MsrChartReport <- if (length(repCount$Run) < msrWindow) {
-  paste0('At least ', msrWindow, ' runs are required to calculate MSR.')
-  } else {msr_calc(usrData, usrTitle, msrWindow)}
-
-
-# Write Report files - for development - Replace with code for usr display and download of charts and data ---------------------
-
-# Create directory for report files Uncomment to save report locally
-# ReportDir <- paste0('UsrReports/', usrTitle)
-# dir.create(ReportDir)
-# 
-# switch(chartType,
-#        ind = {
-#          write_csv(IndChtReport$IChartData, file = paste0(ReportDir, '/', 'IChartData.csv'))
-#          write_csv(IndChtReport$MRChartData, file = paste0(ReportDir, '/', 'MRChartData.csv'))
-#          write_csv(MsrChartReport$MSRData, file = paste0(ReportDir, '/', 'MSRData.csv'))
-#          ggsave(filename = paste0(ReportDir, '/', 'IRChart.png'), plot = IndChtReport$IChart, height = 4, width = 6, units = "in")
-#          ggsave(filename = paste0(ReportDir, '/', 'MRChart.png'), plot = IndChtReport$MRChart, height = 4, width = 6, units = "in")
-#          ggsave(filename = paste0(ReportDir, '/', 'MSRChart.png'), plot = MsrChartReport$MSRChart, height = 4, width = 6, units = "in")
-#        },
-#        rep = {
-#          write_csv(RepChtReport$XbarChartData, file = paste0(ReportDir, '/', 'XbarChartData.csv'))
-#          write_csv(RepChtReport$SChartData, file = paste0(ReportDir, '/', 'SChartData.csv'))
-#          write_csv(MsrChartReport$MSRData, file = paste0(ReportDir, '/', 'MSRData.csv'))
-#          ggsave(filename = paste0(ReportDir, '/', 'XbarChart.png'), plot = RepChtReport$XbarChart, height = 4, width = 6, units = "in")
-#          ggsave(filename = paste0(ReportDir, '/', 'SChart.png'), plot = RepChtReport$SChart, height = 4, width = 6, units = "in")
-#          ggsave(filename = paste0(ReportDir, '/', 'MSRChart.png'), plot = MsrChartReport$MSRChart, height = 4, width = 6, units = "in")
-#        },
-#        both = {
-#          write_csv(IndChtReport$IChartData, file = paste0(ReportDir, '/', 'IChartData.csv'))
-#          write_csv(IndChtReport$MRChartData, file = paste0(ReportDir, '/', 'MRChartData.csv'))
-#          ggsave(filename = paste0(ReportDir, '/', 'IRChart.png'), plot = IndChtReport$IChart, height = 4, width = 6, units = "in")
-#          ggsave(filename = paste0(ReportDir, '/', 'MRChart.png'), plot = IndChtReport$MRChart, height = 4, width = 6, units = "in")
-#          write_csv(RepChtReport$XbarChartData, file = paste0(ReportDir, '/', 'XbarChartData.csv'))
-#          write_csv(RepChtReport$SChartData, file = paste0(ReportDir, '/', 'SChartData.csv'))
-#          ggsave(filename = paste0(ReportDir, '/', 'XbarChart.png'), plot = RepChtReport$XbarChart, height = 4, width = 6, units = "in")
-#          ggsave(filename = paste0(ReportDir, '/', 'SChart.png'), plot = RepChtReport$SChart, height = 4, width = 6, units = "in")
-#          write_csv(MsrChartReport$MSRData, file = paste0(ReportDir, '/', 'MSRData.csv'))
-#          ggsave(filename = paste0(ReportDir, '/', 'MSRChart.png'), plot = MsrChartReport$MSRChart, height = 4, width = 6, units = "in")
-#        })
