@@ -206,7 +206,7 @@ ind_charts <- function(usrdata, usrtitle) {
   
   IChart <- log_ctrl_cht(plotdata = IChartData)
   IChart <- IChart +
-    labs(title = paste0('Individual Chart - ', usrtitle),
+    labs(title = paste0('Individuals Chart - ', usrtitle),
          y = 'Potency')
   
   IChartData <- IChartData %>% 
