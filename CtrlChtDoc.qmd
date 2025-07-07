@@ -30,9 +30,9 @@ set.seed(9031962) # for reproducibility
 source('R/FunCtrlCht.R')
 ```
 
-Control charts were originally developed by Walter Shewart [@shewhart1926] at Bell Labs as a tool to monitor the quality of a process over time. They are commonly used in many fields to both document quality and identify potential problems before they become significant. Control charts analyze a measurement of a process characteristic made repeatedly over time. If the process is reproducible, then these measurements should show only normal random variation within an acceptable range. Additionally, the variation between different measurement samples should also be random and normally distributed around the true variation in the process. When both of these conditions are met, the process is said to be **in control**. Control charts may also provide signals of potential issues which can be addressed before they become serious enough to cause problems.
+Control charts were originally developed by Walter Shewhart [@shewhart1926] at Bell Labs as a tool to monitor the quality of a process over time. They are commonly used in many fields to both document quality and identify potential problems before they become significant. Control charts analyze a measurement of a process characteristic made repeatedly over time. If the process is reproducible, then these measurements should show only normal random variation within an acceptable range. Additionally, the variation between different measurement samples should also be random and normally distributed around the true variation in the process. When both of these conditions are met, the process is said to be **in control**. Control charts may also provide signals of potential issues which can be addressed before they become serious enough to cause problems.
 
-Before moving an assay into routine operation, it is important to have some initial measurement of its inherent variability, such as the [replicate experiment]{.underline} [@iversen2004] (note to Dante: could we link the underlined text directly to the replicate experiment explanation in the web tool) to demonstrate reproducibility across 2 runs.
+Before moving an assay into routine operation, it is important to have some initial measurement of its inherent variability, such as the [replicate-experiment]{.underline} [@iversen2012] to demonstrate reproducibility across 2 runs.
 
 This tool focuses on the use of control charts to monitor assay performance in a biological laboratory using potency of a reference compound as the standard measurement of process performance. Data from these assays may be generated across extended periods of time (months to years) and it's important to document that the data collected across the lifetime of an assay is consistent and the data for non-reference compounds should be comparable across the lifetime of the assay.
 
@@ -78,10 +78,9 @@ XbarChartData <- as_tibble(qic(x = basicRunData$runId, y = basicRunData$Data, ch
  XbarCht <-  ctrl_cht(XbarChartData)
  
  XbarCht
-
 ```
 
-@fig-basicXbar is an example of an Xbar chart for a well controlled process. This chart is intended to emphasize the variability between runs, so it is scaled to include all of the run data points and the control limits, but may not include 0 on the y-axis. The control limits are calculated as described above and represent a 99% CI for the run summarized measurement values, based on the within run standard deviation (sd). These control limits will change as the number of runs in the charts increases, especially when the number of replicates in a run is small. There should be at least 6 runs before control charts are used to make decisions about any run, but it is recommended that control charting should be initiated as soon as it becomes apparent that the assay will be used repeatedly. Data points that fall outside of these control limits indicate runs that might be considered outliers and should be investigated to determine the cause of the anomaly. However, no changes should be made to a validated assay until a cause has been determined. The potential outlier, especially if it is a single run, may simply be random variability that will regress back towards the mean in the next run.
+@fig-basicXbar is an example of an Xbar chart for a well controlled process. This chart is intended to emphasize the variability between runs, so it is scaled to include all of the run data points and the control limits, but may not include 0 on the y-axis. The data points represent the mean of all of the measurements within each run, while the center line is the mean of within run means. The control limits are calculated as described above and represent a 99% CI for the run summarized measurement values, based on the within run standard deviation (sd). These control limits will change as the number of runs in the charts increases, especially when the number of replicates in a run is small. There should be at least 6 runs before control charts are used to make decisions about any run, but it is recommended that control charting should be initiated as soon as it becomes apparent that the assay will be used repeatedly. Data points that fall outside of these control limits indicate runs that might be considered outliers and should be investigated to determine the cause of the anomaly. However, no changes should be made to a validated assay until a cause has been determined. The potential outlier, especially if it is a single run, may simply be random variability that will regress back towards the mean in the next run.
 
 ```{r}
 #| label: fig-basicSChart
@@ -96,14 +95,13 @@ SChart <- SChart +
   labs(y = 'Std. Dev.')
 
 SChart
-
 ```
 
 An assessment of the within run variability using either the range (R chart) or standard deviation (S chart) values within each run can also be done. These variability charts include data points for the statistic as well as a center line and control limits. @fig-basicSChart is an example of an S chart from the same data used in @fig-basicXbar. While similar to the Xbar chart, it should be noted that the Lower Control Limit will never be \< 0, since these statistics are always positive numbers.
 
 The variability chart should always be evaluated in conjunction with the data chart. For example, if there is a single run that appears out of control in the data chart and the same run shows greater than normal variability within that run, then it's likely that might be associated with just a few of the replicates that are very different from the mean.
 
-Flags from either the data chart or the variability chart are an indication that the assay is out of control and the assay should be investigated to determine the primary cause(s) for the discrepancy. No changes should be made to the protocol unless there is an obvious observable cause (e.g a liquid handling issue that was observed during the experiment). If the error is just extreme random noise, then the data should regress toward the mean without any intervention. If a root cause is identified and changes are made to the protocol, the new protocol may need to be revalidated with a larger set of reference compounds to ensure that there are no systematic shifts in the data. \[reference to Replicate Experiment or [@iversen2004]\]
+Flags from either the data chart or the variability chart are an indication that the assay is out of control and the assay should be investigated to determine the primary cause(s) for the discrepancy. No changes should be made to the protocol unless there is an obvious observable cause (e.g a liquid handling issue that was observed during the experiment). If the error is just extreme random noise, then the data should regress toward the mean without any intervention. If a root cause is identified and changes are made to the protocol, the new protocol may need to be revalidated with a larger set of reference compounds using the [Replicate-Experiment](https://agm.ncats.nih.gov/app/) [@beck2004], to ensure that there are no systematic shifts in the data.
 
 ## Reference compound(s)
 
@@ -113,9 +111,11 @@ While a single reference compound is sufficient, many assays use multiple refere
 
 If multiple reference compounds are used, then a separate control chart should be kept for each compound. If a change in reference compounds is anticipated, then the new reference compound should be run in parallel with the existing reference compound for at least 6 runs.
 
+it is also important to remember that control charts only report the behavior of the reference compound and should not be a substitute for examining the curves for every sample tested before publishing the results or using them for additional analysis.
+
 ## Potency Control Charts (AGM Webtool)
 
-Control charting the potency of reference compound(s) is a simple way to document that an assay is providing consistent data over an extended period of time. Any potency measurement can be used (e.g. AC~50~, K~i~, ED~80~, ...). However it is important to remember that potency values show a log-normal distribution[@elassaiss-schaap2020]. Therefore, as with the replicate-experiment [@beck2004], the data must be transformed to their log values for the statistical analysis. The statistics can then be transformed back to the linear scale for graphing and will appear to be normally distributed, if the y-axis is log scaled. It should be noted that the transformation of standard deviations determined on the log transformed data become fold-standard deviations when transformed back to the linear scale. \[see previous comment about linking to replicate experiment explanation\].
+Control charting the potency of reference compound(s) is a simple way to document that an assay is providing consistent data over an extended period of time. Any potency measurement can be used (e.g. AC~50~, K~i~, ED~80~, ...). However it is important to remember that potency values show a log-normal distribution [@elassaiss-schaap2020]. Therefore, as with the replicate-experiment [@beck2004], the data must be transformed to their log values for the statistical analysis. The statistics can then be transformed back to the linear scale for graphing and will appear to be normally distributed, if the y-axis is log scaled. It should be noted that the transformation of standard deviations determined on the log transformed data become fold-standard deviations when transformed back to the linear scale. \[see previous comment about linking to replicate experiment explanation\].
 
 Since most experiments do not usually have enough replicates within the run to provide a good estimate of the population variability, adjustments must be made for the sample size within each run [@guthrie]. These adjustments use a factor, c~4~, whose value is determined by the number of replicates within each run as shown: $$\sigma_{wi} = \overline{sd_{wi}}\sqrt{1 - c^2_4}$$
 
@@ -123,17 +123,17 @@ When there is only a single replicate in a run, it is not possible to calculate 
 
 The webtool will generate different reports depending upon whether within run replicates are present (Replicates report) or not (Individuals report).
 
-Reference compounds may be run once per run, on every plate in the run, or somewher in between. The ideal case is to have a reference compound on every assay plate. This allows the data for the reference compound to be used to help pass or fail individual plates within a run and will provide the most consistent view of the assay process over time. However there may be circumstances where this is not feasible and a reference compound is limited to once per experiment.
+Reference compounds may be run once per run, on every plate in the run, or somewhere in between. The ideal case is to have a reference compound on every assay plate. This allows the data for the reference compound to be used to help pass or fail individual plates within a run and will provide the most consistent view of the assay process over time. However there may be circumstances where this is not feasible and a reference compound is limited to once per experiment.
 
 The [AGM Control Charting web tool](https://agm.ncats.nih.gov/app/) does all of this for you and creates the appropriate graphs for the data set submitted. In order to load data, the webtool requires a Run ID for each run and the potency for each replicate of the reference compound in the run. It is recommended that the experiment date be used as the Run ID since this allows the runs to be sorted to ensure that they are sequential. The data should be in a .csv file with columns for "Run ID" and "Data" for each replicate. The following examples show how the tool treats the data based on the number of replicates in the data. All examples assume that the assay MSR is 3.0 and the reference compound potency is 50. **Note the analysis is independent of units, so the data is displayed in the same units as the submitted data without explicit units.**
 
 Once the data has been uploaded to the webtool, it will calculate the number of replicates in each run and determine the appropriate analyses to run as follows:
 
-1.  If all of the runs contain 2 or more replicate generate a Replicates report.
+1.  If all of the runs contain 2 or more replicates, generate a Replicates report.
 2.  If most of the runs are single replicates, then generate an Individuals report using the first replicate in every run.
 3.  If \< 50% of the runs are single replicates, then generate both reports.
 
-### Constant Replicate Number (Replicates Report)
+### Constant Replicate Number (Replicates Report) {#sec-cReps}
 
 The first example may be less common in practice, but is the simplest to interpret, because all of the runs contain the same number of replicates (n = 6), so the c~4~ factor is the same for each run and the control limits are simple horizontal lines representing the 99% Confidence Interval.
 
@@ -348,11 +348,11 @@ sRepMSRHead <- sRepMSRReport$MSRData %>%
 sRepMSRHead
 ```
 
-@tbl-sRepMSRData shows the calculated MSR values for the first few runs in the MSR plot. Remember that MSR's are not calculated until at least 6 runs have occurred. The initial cumulative and moving MSR values are identical, since they are based on the same 6 data points. These MSR's are also significantly lower than the true MSR for the assay (3.0).
+@tbl-sRepMSRData shows the calculated MSR values for the first few runs in the MSR plot. Remember that MSRs are not calculated until at least 6 runs have occurred. The initial cumulative and moving MSR values are identical, since they are based on the same 6 data points. These MSRs are also significantly lower than the true MSR for the assay (3.0).
 
 ### Variable Replicates
 
-If a reference compound is included on every plate tested, it's likely that the number of replicates will vary from run to run. While this might be a common situation, this will add some complexity to the control charts. Most runs (outside of HTS) will be small (\< 20 plates), so statistical factors are used to adjust for sampling bias in order to better estimate the population $\sigma_{\mathit(wi)}$. As described in the previous 2 sections, there are different factors for this estimate, depending on whether the range (d~2~) or the sd (c~4~) is being used. @tbl-cChartFact shows how these factors change with different values for n. The values for these factors of these factors increase assymptotically as n increases and will eventually converge on constants that are used for larger sample sizes.
+If a reference compound is included on every plate tested, it's likely that the number of replicates will vary from run to run. While this might be a common situation, this will add some complexity to the control charts. Most runs (outside of HTS) will be small (\< 20 plates), so statistical factors are used to adjust for sampling bias in order to better estimate the population $\sigma_{\mathit(wi)}$. As described in the previous 2 sections, there are different factors for this estimate, depending on whether the range (d~2~) or the sd (c~4~) is being used. @tbl-cChartFact shows how these factors change with different values for n. The values for these factors of these factors increase asymptotically as n increases and will eventually converge on constants that are used for larger sample sizes.
 
 ```{r}
 #| label: tbl-cChartFact
@@ -373,7 +373,7 @@ ccFac
 
 In order to calculate the control limits, the runs are grouped by the number of replicates. The mean sd~*wi*~ for each group is then used with the corresponding c~4~ value to determine the control limits for all of the runs in the group. This provides the best estimate of the control limits for each group, but results in control limits that will change with the number of replicates in the run.
 
-When the number of replicates is variable, the web tool will The following data set illustrates the last situation with 1-6 replicates/run.
+When the number of replicates is variable, the web tool will use all of the data from all of the runs with the same number of replicates to calculate the upper and lower control limits for that group of runs. The following data set illustrates the last situation with 1-6 replicates/run.
 
 ```{r}
 #| label: tbl-vRepsData
@@ -454,10 +454,10 @@ vRepIndReport <- ind_charts(usrdata = vRepsData, usrtitle = 'First Replicate')
 vRepIndReport$IChart
 ```
 
-@fig-vRepIChart shows the Individuals chart from the same data set. The control limits are now constant values and cover a broader range than in the Xbar chart. The data points for each run also appear to be more variable than in the Xbar chart. It appears that a run in July almost reaches the upper control limit, but a comparison with @fig-vRepsXbarChart shows that run is well controlled with the run mean near the center line. the control limits also are reduced around this point, suggesting that the first replicate in this run was just a high value, but within the expected within run variation.
+@fig-vRepIChart shows the Individuals chart from the same data set. The control limits are now constant values and cover a broader range than in the Xbar chart. The data points for each run also appear to be more variable than in the Xbar chart. It appears that a run in July almost reaches the upper control limit, but a comparison with @fig-vRepsXbarChart shows that the same run is well controlled with the run mean near the center line. The control limits also are reduced around this point, suggesting that the first replicate in this run was just a high value, but within the expected within run variation.
 
 ```{r}
-#| label: tbl-vReoIndChtStats
+#| label: tbl-vRepIndChtStats
 #| tbl-cap: Variable replicates Individuals Chart Data
 
 vRepIndStatsHead <- vRepIndReport$IChartData %>% 
@@ -469,7 +469,7 @@ vRepIndStatsHead
 
 ```
 
-The data and statistics are shown in @tbl-vReoIndChtStats. Since this method uses only the first replicate in every run, there are no gaps in the graph or NA values in the data table.
+The data and statistics are shown in . Since this method uses only the first replicate in every run, there are no gaps in the graph or NA values in the data table.
 
 ```{r}
 #| label: fig-vRepMRChart
@@ -478,7 +478,7 @@ The data and statistics are shown in @tbl-vReoIndChtStats. Since this method use
 vRepIndReport$MRChart
 ```
 
-The Moving Range plot, @fig-vRepMRChart, provides an view of the within run variability without and gaps for the runs with singlet data.
+The Moving Range plot, @fig-vRepMRChart, provides an view of the within run variability without any gaps for the runs with singlet data.
 
 ```{r}
 #| label: tbl-vRepMRChartStats
@@ -498,7 +498,7 @@ vRepMRchartStatsHead
 
 ```{r}
 #| label: fig-vRepsMSRChart
-#| fig-cap: NSR chart of the variable replicates data.
+#| fig-cap: MSR chart of the variable replicates data.
 
 vRepsMSRReport <- msr_calc(vRepsData, 'Variable Replicates', msrWindow)
 
@@ -524,17 +524,260 @@ vRepsMSRHead
 
 ## Case Studies
 
-### Control Charting in Real Time
+### Establishing Control Limits
 
-Outline use the data from the constant replicates example to illustrate how control limits will vary, especially during the initial runs.
+The best practice is to update the control charts for an assay after each run to determine if the experiment was successful. However, it ia important to remember that the control parameters will change with each additional run. These changes can be large over the first few runs. For this reason, control charts should not be used to pass or fail individual runs, until there are at least 6 runs of historical data to determine the control limits.
 
-figure multipanel comparison of 3-4 control charts early in the data set. e.g. runs 4, 8, 12
+The following case study is based on the data from the Constant Replicates example @sec-cReps. Recall that this example had 6 replicates of the reference compound in each run. In order to demonstrate the impact of the number of replicates per run as well as the number of runs in the data set, the subsets of the data with 1, 2, or 3 replicates per run as well as the full set of 6 replicates are used in this case study. Control chart parameters were calculated using only the runs up the specified date, so the first data point represents the data from the first 2 runs.
 
-figure a continuous plot of the centerline and control limits for the control chart that would correspond to each run date.
+```{r}
+#| label: tbl-xBarTL1
+#| tbl-cap: Control Chart parameters for each run date using the n =1 data.
 
-second section, look at control charts around the flagged run data and discuss in more more detail the interpretation and response.
+runDates <- unique(cRepsData$Run)
+runDates <- runDates[c(2:length(runDates))] # exclude the first date for timeline
+chatData <- filter(cRepsData, Run <= runDates[3])
+sel_cols <- c("x", "cl", "ucl", "lcl", "n.obs")
+new_cols <- c(x = "Run", cl = "CL", ucl = "UCL", lcl = "LCL", n.obs = "n_Runs")
 
-### Additional case studies can use available data or will simulate data to discuss additional scenarios.
+# Function to extract control chart parameters from a earlier date. -------------------------------------------
+# endDate = last date for the extracted parameters
+# ccData = data frame containing the control chart data
+# ccType = type of control chart (e.g., "xbar", "s", "c", etc.) for qicharts2
+
+extract_ctrlCht_params <- function(endDate, ccData, ccType) {
+  ccData <- filter(ccData, Run <= endDate)
+
+  if (nrow(ccData) < 2) {
+    stop("Not enough data to extract control chart parameters.")
+  }
+
+  params <- qic(x = ccData$Run, y = log10(ccData$Data), chart = ccType, return.data = TRUE) %>%
+    select(all_of(sel_cols)) %>%
+    mutate(across(contains("cl"), pow10)) %>%
+    summarize_all(last)
+
+  return(params)
+}
+
+# Create subset of cRepsData with n = 1-3 for illustrating the impact of n ---------------------
+cRepsFirst <- cRepsData |> # n = 1
+  group_by(Run) |>
+  summarise_all(first)
+
+cRepsLast <- cRepsData |>
+  group_by(Run) |>
+  summarise_all(last)
+
+cRepsMid <- anti_join(cRepsData, cRepsFirst) |>
+  anti_join(cRepsLast)
+
+cReps2nd <- cRepsMid |>
+  group_by(Run) |>
+  summarise_all(first)
+
+cReps2 <- cRepsFirst |> # n = 2
+  rbind(cReps2nd) |>
+  arrange(Run)
+
+cReps3 <- cReps2 |> # n = 3
+  rbind(cRepsLast) |>
+  arrange(Run)
+
+# xBar chart parameters for every run over time for each n = 1, 2, 3, 6 -------------------
+xBarTL1 <- runDates |> # n = 1
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsFirst, ccType = "i")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+xBarTL2 <- runDates |> # n = 2
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps2, ccType = "xbar")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+xBarTL3 <- runDates |> # n = 3
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps3, ccType = "xbar")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+xBarTL6 <- runDates |> # n = 6
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "xbar")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+xBarTL1Head <- xBarTL1 %>% 
+  slice_head(n = 10) %>% 
+  mutate(n_Runs = as.character(n_Runs)) %>% 
+  gt()  %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Individuals Chart Parameters')
+
+xBarTL1Head
+```
+
+@tbl-xBarTL1 shows the parameters for the Individuals Chart (n =1) data. Since control charts require at least 2 runs, there are no parameters for the first run in the data set and each date represents an increasing number of total runs.
+
+```{r}
+#| label: fig-xBarTL
+#| fig-cap: Control chart parameters vary with both the number of replicates and the number of runs. This includes the Center Line (CL) in blue, which is the mean Potency, and the the Control Limits (UCL and LCL) in red.
+
+# Generate time line data frame for log_ctrl_cht() ------------------------------
+tl_plot_data <- function(df) {
+  dataCols <- c("CL", "LCL", "UCL")
+
+  df <- df %>%
+    pivot_longer(cols = all_of(dataCols), names_to = "Line", values_to = "Data") %>%
+    mutate(Lines = if_else(Line == "CL", "Center Line", "Control Limit")) %>%
+    slice_head(n = 45)
+}
+
+# Generate plot of control chart time line values. Modified from log_ctrl_cht() -----------------
+tl_log_ctrl_cht <- function(plotdata) {
+  plotdata <- tl_plot_data(plotdata)
+
+  chart <- ggplot(plotdata, aes(x = Run, y = Data, group = Line, color = Lines)) +
+    geom_point() +
+    geom_line() +
+    scale_colour_manual(values = c("Data" = "black", "Center Line" = "mediumblue", "Control Limit" = "red")) +
+    scale_y_continuous(trans = "log10") +
+    theme_linedraw() +
+    theme(legend.position = "none")
+}
+
+# Create xBarTL figure ----------------
+xBarTL1_plot <- tl_log_ctrl_cht(xBarTL1) +
+  labs(
+    title = "n = 1",
+    y = "Potency"
+  )
+
+xBarTL2_plot <- tl_log_ctrl_cht(xBarTL2) +
+  labs(
+    title = "n = 2",
+    y = "Potency"
+  )
+
+xBarTL3_plot <- tl_log_ctrl_cht(xBarTL3) +
+  labs(
+    title = "n = 3",
+    y = "Potency"
+  )
+
+xBarTL6_plot <- tl_log_ctrl_cht(xBarTL6) +
+  labs(
+    title = "n = 6",
+    y = "Potency"
+  )
+
+xBarTL_plot <- (xBarTL1_plot + xBarTL2_plot) / (xBarTL3_plot + xBarTL6_plot) +
+  plot_annotation(
+    title = "Measurement Chart Parameters Time Lines.", tag_levels = "A"
+  )
+
+xBarTL_plot
+```
+
+The variability in the parameters for the mean potency is shown in @fig-xBarTL, for each data set with the center line (CL) in blue and the control limits (UCL, LCL) in red. While all of the data sets show some significant differences in the control limits in the first few runs, they tend to converge to a steady state after about 6 runs. The differences between the y-axes for the different runs also illustrates the impact of increasing n on the parameter estimates.
+
+```{r}
+#| label: fig-sChartTL
+#| fig-cap: Variability control chart parameters vary with both the number of replicates and the number of runs. This includes the Center Line (CL) in blue, which is the mean Potency, and the the Control Limits (UCL and LCL) in red.
+
+# Schart parameters for every run over time for n = 1, 2, 3, 6 ----------------
+sChartTL1 <- runDates |> # n = 1
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsFirst, ccType = "mr")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+sChartTL2 <- runDates |> # n = 2
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps2, ccType = "s")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+sChartTL3 <- runDates |> # n = 3
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "s")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+sChartTL6 <- runDates |> # n = 6
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "s")) |>
+  list_rbind() |>
+  rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
+
+# Create SchartTL figure ----------------
+sChartTL1_plot <- tl_log_ctrl_cht(sChartTL1) +
+  labs(
+    title = "n = 1",
+    y = "Fold MR"
+  )
+
+sChartTL2_plot <- tl_log_ctrl_cht(sChartTL2) +
+  labs(
+    title = "n = 2",
+    y = "Fold Std. Dev."
+  )
+
+sChartTL3_plot <- tl_log_ctrl_cht(sChartTL3) +
+  labs(
+    title = "n = 3",
+    y = "Fold Std. Dev."
+  )
+
+sChartTL6_plot <- tl_log_ctrl_cht(sChartTL6) +
+  labs(
+    title = "n = 6",
+    y = "Fold Std. Dev."
+  )
+
+sChartTL_plot <- (sChartTL1_plot + sChartTL2_plot) / (sChartTL3_plot + sChartTL6_plot) +
+  plot_annotation(
+    title = "Variability Chart Parameters Time Lines.", tag_levels = "A"
+  )
+sChartTL_plot
+```
+
+The variability charts in @fig-sChartTL show a similar pattern with more differences in the initial runs before converging towards more consistent values in the later runs.
+
+These plots illustrate why you should not use the control limits in the initial runs of an assay to make pass/fail decisions about those runs. Though, after sufficient data has been collected, you may recognize that an early run was out of control. Additionally, as the number of runs increases, the control limits will become less sensitive to changes in assay performance. If the assay appears to be in control, this can be mitigated by starting a new set of charts, with just the 10 most recent runs to establish updated control limits.
+
+### Evaluating Out of Control Data (Constant Replicates Example). {#sec-cRepsOutlier}
+
+Ideally, a new control chart should be created and reviewed as soon as possible after each run. If the data for the reference compound(s) appear to be in control (no flags in the run.signal or sigma.signal columns), then the experiment can be considered to be successful.
+
+If the reference compound out of control, the data from the entire experiment may be suspect and further investigation is needed. It is much easier to identify potential causes while the experimental details are more readily available. If potential causes are identified (e.g. the assayer observed something unusual during the assay) they can be assessed for their impact on the whole experiment. Having a reference compound on each plate allows individual plates to be passed or failed. If there are are replicates within the run, but not on every plate, then any plates between two passing replicates are considered suspect and if there is only one instance of the reference compound in a run, then all the plates in the run are suspect.
+
+When a cause can not be easily identified, it is important to remember that this simply might be random error and a repeat of the experiment could resolve the problem. Simply repeating the experiment, may resolve the issue. If it is not feasible to repeat the experiment with all of the test samples, then the assay should be repeated with just the reference compound(s) to confirm the problem, before making any changes to the validated protocol.
+
+```{r}
+#| label: fig-cRepsOutxBar
+#| fig-cap: Xbar control chart for suspect run
+
+# cRepsData up to suspect run
+cRepsOutData <- filter(cRepsData, Run <= runDates[20])
+
+cRepsOutReport <- xbars_charts(cRepsOutData, usrtitle = "Constant Replicates")
+
+cRepsOutCharts <- cRepsOutReport$XbarChart / cRepsOutReport$SChart
+
+cRepsOutCharts
+```
+
+@fig-cRepsOutxBar shows the control charts for the suspect run. Since the last data point in the Xbar chart falls just below the Lower Control Limit, the run needs to be investigated. However, the S chart shows that the variability for that run appears to fine, so it is possible that this is simply random noise.
+
+```{r}
+#| label: tbl-cRepsOutRun
+#| tbl-cap: Replicate data for the suspect run.
+
+cRepsOutRun <- cRepsOutData %>% 
+  filter(Run == runDates[20]) %>% 
+  gt()  %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Data for 5/21/2023')
+
+cRepsOutRun
+```
+
+The next step would be to examine the individual replicates as shown in @tbl-cRepsOutRun. Only the replicates 3 and 4 are close to the expected value of 50, while the other 4 replicates are closer to half of the expected value. At this point the individual curve fits could be examined for possible outlier data points. It is possible that there could have been an error in either the preparation of the reference compound or another reagent for this experiment or a liquid handling problem with the suspect plates. Unless the assayer observed something specific, there is no assignable cause. At this point the best thing to run the experiment again without making any changes to the protocol. In this case we know from @fig-cRepsXbarChart that the next run was fine. While the data from the other samples in these experiments is not available, if there were results for those test samples in other runs, a paired t-test or other analysis might be used to confirm if there was an issue with the run in question. For this reason, it would be important to document the suspected issues with that run, in case of further issues with any of the data generated in the experiment. It would also be recommended to rerun all of the test samples from the suspected run at some point to confirm the test results.
 
 ## Acknowledgement
 
