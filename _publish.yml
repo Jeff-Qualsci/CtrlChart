@@ -1,4 +1,4 @@
 - source: CtrlChtDoc.qmd
   quarto-pub:
     - id: aa904929-39ad-49db-9540-cc89fd06669d
-      url: 'https://jeff-qualsci.quarto.pub/control-charting'
+      url: https://jeff-qualsci.quarto.pub/control-charting
