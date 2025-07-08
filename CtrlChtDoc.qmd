@@ -141,7 +141,7 @@ The first example may be less common in practice, but is the simplest to interpr
 #| label: tbl-cReps
 #| tbl-cap: Constant Reps Run Data
 
-cRepsData <- tstdata(truePot = 50, trueMsr = 3, maxReps = 6, numRuns = 40, varReps = FALSE)
+cRepsData <- read_csv("TestData/DocData/cRepsData.csv", col_types = c("D", "d"))
 
 cRepsHead <- cRepsData %>% 
   slice_head(n = 10) %>% 
@@ -154,24 +154,17 @@ cRepsHead
 
 @tbl-cReps shows the first 10 lines of the input data where dates are used to identify the runs. The entire data set consists of 40 runs with 6 replicates of the reference compound in each run.
 
-```{r}
-#| label: fig-cRepsXbarChart
-#| fig-cap: Xbar chart of the constant replicate data.
+![Xbar chart of the constant replicate data.](Reports/cRepsData_2025-07-07%2020_33_11.123606/cRepsData_XbrFig_2025-07-07%2020_31_32.967119.png){#fig-cRepsXbarChart}
 
-cRepsReport <- xbars_charts(usrdata = cRepsData, usrtitle = 'Constant Reps')
-
-cRepsReport$XbarChart
-
-```
-
-@fig-cRepsXbarChart shows the Xbar chart of the run date. The data points represent the geometric mean of the reference compound replicates. The center line is the grand mean of all of the run means and represents the true potency of the reference compound. The other two lines are the upper and lower control limits. It is important to note that the y-axis is displaying the data in the original linear scale, but with logarithmic spacing, so that the data appear to be evenly distributed across the graph. There is a single point that falls just below the lower control limit, but the data regress back toward the mean in the next run, strongly suggesting that this was a random event without a specific cause that needs to be addressed.
+@fig-cRepsXbarChart shows the Xbar chart of the run date. The data points represent the geometric mean of the reference compound replicates. The center line is the grand mean of all of the run means and represents the true potency of the reference compound. The other two lines are the upper and lower control limits. It is important to note that the y-axis is displaying the data in the original linear scale, but with logarithmic spacing, so that the data appear to be evenly distributed across the graph. There is a single point that falls just below the lower control limit, but the data regress back toward the mean in the next run, strongly suggesting that this was a random event without a specific cause that needs to be addressed. A more detailed discussion of this outlier can be found in @sec-cRepsOutlier.
 
 ```{r}
 #| label: tbl-cRepsXbarStats
 #| tbl-cap: Constant Reps Xbar Statistics
 
-cRepsXbarStatsHead <- cRepsReport$XbarChartData %>% 
+cRepsXbarStatsHead <- read_csv("Reports/cRepsData_2025-07-07 20_33_11.123606/cRepsData_XbarChartData_tbl.csv") %>%
   filter(between(Run, as.Date('2023-05-01'), as.Date('2023-07-15'))) %>% 
+  mutate(n = as.character(n)) %>%
   gt() %>%
   gt_highlight_rows(rows = 3, font_weight = "normal") %>%
   fmt_number(n_sigfig = 3) %>% 
@@ -182,12 +175,7 @@ cRepsXbarStatsHead
 
 A closer look at the statistics table for the Xbar chart, @tbl-cRepsXbarStats, shows the details around the flagged run. The TRUE value in the sigma.signal column indicates a data point that falls outside of the control limits in the chart for the 2023-05-21 run. The values for the CL (50.04), LCL (31.80), and UCL (78.74) also illustrate why the y-axis uses logarithmic scaling since the confidence interval would appear asymmetric if linear scaling were used.
 
-```{r}
-#| label: fig-cRepsSchart
-#| fig-cap: S chart of the constant replicate data.
-
-cRepsReport$SChart
-```
+![S chart of the constant replicate data.](Reports/cRepsData_2025-07-07%2020_33_11.123606/cRepsData_SchFig_2025-07-07%2020_31_32.967963.png){#fig-cRepsSchart}
 
 The within run variability is shown in @fig-cRepsSchart. The transformation back to the linear scale converts the y-axis to Fold Std. Dev. and that axis is also log scaled, similar to the Xbar chart. The center line is the transformed mean of run standard deviations (sd~*wi*~*)*. The upper Control Limit is determined by the variability in the within run standard deviations (99% confidence limit), while the Lower Control Limit is 1 which corresponds to a standard deviation of 0. There are a few, short ( n \< 6 runs) trends, but nothing sufficient to set the run.signal flag.
 
@@ -195,8 +183,9 @@ The within run variability is shown in @fig-cRepsSchart. The transformation back
 #| label: tbl-cRepsSchartStats
 #| tbl-cap: Constant Reps Schart Statistics
 
-cRepsSchartStatsHead <- cRepsReport$SChartData %>% 
- filter(between(Run, as.Date('2023-05-01'), as.Date('2023-07-15'))) %>% 
+cRepsSchartStatsHead <- read_csv("Reports/cRepsData_2025-07-07 20_33_11.123606/cRepsData_SChartData_tbl.csv") %>%
+  filter(between(Run, as.Date('2023-05-01'), as.Date('2023-07-15'))) %>% 
+  mutate(n = as.character(n)) %>%
   gt() %>% 
    gt_highlight_rows(rows = 3, font_weight = "normal") %>%
   fmt_number(n_sigfig = 3) %>% 
@@ -211,14 +200,7 @@ The web tool also provides a plot of the MSR values over time. While this is not
 
 The tool calculates two different values for the MSR. The cumulative MSR uses all of the data up to and including a given run. Over time this value will become less sensitive to assay changes, but should converge on the true MSR for the reference compound. The other MSR is calculated using the data from the current run as well as the previous 5 runs. This moving MSR will be more variable, but it is also more sensitive to the short-term performance of the assay.
 
-```{r}
-#| label: fig-cRepsMSRChart
-#| fig-cap: MSR chart of the constant replicate data.
-
-cRepsMSRReport <- msr_calc(cRepsData, 'Constant Reps', msrWindow)
-
-cRepsMSRReport$MSRChart
-```
+![MSR chart of the constant replicate data.](Reports/cRepsData_2025-07-07%2020_33_11.123606/cRepsData_MSRFig_2025-07-07%2020_31_32.968709.png){#fig-cRepsMSRChart}
 
 @fig-cRepsMSRChart shows the MSR chart for the constant replicate data. Because this is not a control chart, there are no formal statistical criteria to identify potential problems.
 
@@ -226,7 +208,7 @@ cRepsMSRReport$MSRChart
 #| label: tbl-cRepsMSRData
 #| tbl-cap: Constant Reps MSR Data
 
-cRepsMSRHead <- cRepsMSRReport$MSRData %>% 
+cRepsMSRHead <- read_csv("Reports/cRepsData_2025-07-07 20_33_11.123606/cRepsData_MSRData_tbl.csv") %>% 
   slice_head(n = 10) %>% 
   gt() %>% 
   tab_header(title = 'Constant Replicates MSR Data')
@@ -260,9 +242,7 @@ While the value of d~2~ is dependent upon the size of the data set, for n = 2, t
 #| label: tbl-sRepData
 #| tbl-cap: Single Rep Run Data
 
-sRepData <- tstdata(truePot = 50, trueMsr = 3, maxReps = 1, numRuns = 40, varReps = FALSE)
-
-sRepHead <-sRepData %>% 
+sRepHead <-read_csv("TestData/DocData/sRepData.csv") %>% 
   slice_head(n = 10) %>% 
   gt() %>% 
   tab_header(title = 'Single Replicate Data')
@@ -273,15 +253,7 @@ sRepHead
 
 @tbl-sRepData shows the first 10 lines of the input data. The entire data set consists of 40 runs with 1 replicate of the reference compound in each run.
 
-```{r}
-#| label: fig-sRepIChart
-#| fig-cap: Individuals chart of the single replicate data.
-
-sRepReport <- ind_charts(usrdata = cRepsData, usrtitle = 'Single Rep')
-
-sRepReport$IChart
-
-```
+![Individuals chart fo the single replicate data.](Reports/sRepData_2025-07-07%2020_46_00.062068/sRepData_IChFig_2025-07-07%2020_45_32.125561.png){#fig-sRepIChart}
 
 The potency values for each run are shown in @fig-sRepIChart. While the data point and the mean are identical for individual data, it is referred to as an Individuals chart to distinguish it from an Xbar chart, though they are conceptually similar. The Center Line represents the mean of all the data and estimates the true potency of the reference compound, while the control limits indicate a 99% CI based on the sd~*wi*~. The y-axis uses log scale so that the distribution of the data appears normal. The note at the bottom of the figure indicates that the data is in control with no runs flagged for investigation.
 
@@ -289,7 +261,8 @@ The potency values for each run are shown in @fig-sRepIChart. While the data poi
 #| label: tbl-sRepIndChtStats
 #| tbl-cap: Single Replicate  Individuals Chart Data
 
-sRepIndStatsHead <- sRepReport$IChartData %>% 
+sRepIndStatsHead <- read_csv("Reports/sRepData_2025-07-07 20_46_00.062068/sRepData_IChartData_tbl.csv") %>% 
+  mutate(n = as.character(n)) %>%
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
@@ -300,12 +273,7 @@ sRepIndStatsHead
 
 @tbl-sRepIndChtStats shows the corresponding statistics for each run. It is important to note that the Center Line and Control limits will change as more runs are added to the data set.
 
-```{r}
-#| label: fig-sRepMRChart
-#| fig-cap: Moving Range chart of the single replicate data.
-
-sRepReport$MRChart
-```
+![Moving Range chart of the single replicate data.](Reports/sRepData_2025-07-07%2020_46_00.062068/sRepData_MRaFig_2025-07-07%2020_45_32.126426.png){#fig-sRepMRChart}
 
 @fig-sRepMRChart shows the variability in the data over time. The moving range is determined from the log(potency) data and then transformed back to the linear scale as Fold Moving range, similar to the S chart in the previous section. The control limits are set similarly to the S chart with the upper Control Limit based on the variability of the moving range data and the Lower Control Limit equal to 1 (sd~*wi*~ = 0).
 
@@ -313,7 +281,8 @@ sRepReport$MRChart
 #| label: tbl-sRepMRChartStats
 #| tbl-cap: Single Rep MR Chart Statistics
 
-sRepMRchartStatsHead <- sRepReport$MRChartData %>% 
+sRepMRchartStatsHead <- read_csv("Reports/sRepData_2025-07-07 20_46_00.062068/sRepData_MChartData_tbl.csv") %>% 
+  mutate(n = as.character(n)) %>%
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
@@ -324,14 +293,7 @@ sRepMRchartStatsHead
 
 @tbl-sRepMRChartStats shows the statistics and any associated flags for each run.
 
-```{r}
-#| label: fig-sRepMSRChart
-#| fig-cap: MSR chart of the single replicate data.
-
-sRepMSRReport <- msr_calc(sRepData, 'Single Replicate', msrWindow)
-
-sRepMSRReport$MSRChart
-```
+![MSR chart of the single replicate data,](Reports/sRepData_2025-07-07%2020_46_00.062068/sRepData_MSRFig_2025-07-07%2020_45_32.1286.png){#fig-sRepMSRChart}
 
 @fig-sRepMSRChart is the graph of the cumulative and moving (last 6 runs) MSR values as described in the constant replicates section. The first several MSR values for single replicate data should be interpreted with caution, because of the small number of data points available for the calculation. This can result in MSR values that are significantly different from what would be determined from a Replicate-Experiment [@iversen2012] or Retrospective MSR Study [@haas2017]. Eventually the cumulative MSR should converge on a reasonable value as enough data is collected, though the moving MSR will always be limited to 6 data points.
 
@@ -339,7 +301,7 @@ sRepMSRReport$MSRChart
 #| label: tbl-sRepMSRData
 #| tbl-cap: Single Replicate MSR Data
 
-sRepMSRHead <- sRepMSRReport$MSRData %>% 
+sRepMSRHead <- read_csv("Reports/sRepData_2025-07-07 20_46_00.062068/sRepData_MSRData_tbl.csv") %>% 
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
@@ -379,9 +341,7 @@ When the number of replicates is variable, the web tool will use all of the data
 #| label: tbl-vRepsData
 #| tbl-cap: Variable Replicates Run Data
 
-vRepsData <- tstdata(truePot = 50, trueMsr = 3, maxReps = 6, minReps = 1, numRuns = 40, varReps = TRUE)
-
-vRepsHead <- vRepsData %>% 
+vRepsHead <- read_csv("TestData/DocData/vRepsData.csv") %>% 
   slice_head(n = 10) %>% 
   gt() %>% 
   tab_header(title = 'Variable Replicates Data')
@@ -392,15 +352,7 @@ vRepsHead
 
 @tbl-vRepsData shows the first 10 lines of the input data. The entire data set consists of 40 runs with 1-6 replicates of the reference compound in each run to illustrate the impact of variable replicates.
 
-```{r}
-#| label: fig-vRepsXbarChart
-#| fig-cap: Xbar chart of the variable replicate data.
-
-vRepsReport <- xbars_charts(usrdata = vRepsData, usrtitle = 'Variable Replicates')
-
-vRepsReport$XbarChart
-
-```
+![Xbar chart of the variable replicate data](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_XbrFig_2025-07-07%2020_46_51.266025.png){#fig-vRepsXbarChart}
 
 Whenever all or most of the runs contain replicates the web tool will create both an Xbar chart (@fig-vRepsXbarChart) and an S chart. Since these charts use all the replicate data, they should be examined first. As with the constant replicate example, the data points are the mean values for each run and the center line represents the population mean. The control limits now vary according to the number of replicates within the run. Generally as n increases, the control limits will get closer to the center line (CL). There are also gaps in the control limits for the runs with a single replicate because sdwi can not be calculated for single observations.
 
@@ -408,7 +360,8 @@ Whenever all or most of the runs contain replicates the web tool will create bot
 #| label: tbl-vRepsXbarStats
 #| tbl-cap: Variable Replicates Xbar Statistics
 
-vRepsXbarStatsHead <- vRepsReport$XbarChartData %>% 
+vRepsXbarStatsHead <- read_csv("Reports/vRepsData_2025-07-07 20_48_00.53638/vRepsData_XbarChartData_tbl.csv") %>% 
+  mutate(n = as.character(n)) %>%
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
@@ -419,12 +372,7 @@ vRepsXbarStatsHead
 
 The statistics for each run in the Xbar chart are shown in @tbl-vRepsXbarStats along with the run and signal flags. NA values in the Control Limit columns will occur when a run contains only a single value for the reference compound and the sd~wi~ can not be calculated with this method.
 
-```{r}
-#| label: fig-vRepsSChart
-#| fig-cap: S chart of the variable replicate data.
-
-vRepsReport$SChart
-```
+![S chart of the variable replicate data.](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_SchFig_2025-07-07%2020_46_51.266698.png){#fig-vRepsSChart}
 
 The S chart in @fig-vRepsSChart is conceptually similar to the S chart described in the constant replicates example. As with the Xbar chart, the control limits vary with the number of replicates in each run. There will also be missing data points for any runs with a single replicate, since there is no sd~wi~ associated with these runs.
 
@@ -432,7 +380,8 @@ The S chart in @fig-vRepsSChart is conceptually similar to the S chart described
 #| label: tbl-vRepsSchartStats
 #| tbl-cap: Variable Replicates S chart Statistics
 
-vRepsSchartStatsHead <- vRepsReport$SChartData %>% 
+vRepsSchartStatsHead <- read_csv("Reports/vRepsData_2025-07-07 20_48_00.53638/vRepsData_SChartData_tbl.csv") %>% 
+  mutate(n = as.character(n)) %>%
   slice_head(n = 10) %>% 
   gt() %>% 
   fmt_number(n_sigfig = 3) %>% 
@@ -445,14 +394,7 @@ vRepsSchartStatsHead
 
 While they only use the data from the first replicate of each run, Individuals and Moving Range charts are produced whenever there is at least one run with a single replicate of the reference compound. This may help to fill the gaps that appear in the Xbar and S charts. Additionally, whenever the majority of the runs have a single replicate of the reference compound, the Individual and Moving Range charts will be the only control charts generated by the web tool.
 
-```{r}
-#| label: fig-vRepIChart
-#| fig-cap: Individuals chart of the variable replicate data.
-
-vRepIndReport <- ind_charts(usrdata = vRepsData, usrtitle = 'First Replicate')
-
-vRepIndReport$IChart
-```
+![Individuals chart of the variable replicate data.](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_IChFig_2025-07-07%2020_46_51.264546.png){#fig-vRepIChart}
 
 @fig-vRepIChart shows the Individuals chart from the same data set. The control limits are now constant values and cover a broader range than in the Xbar chart. The data points for each run also appear to be more variable than in the Xbar chart. It appears that a run in July almost reaches the upper control limit, but a comparison with @fig-vRepsXbarChart shows that the same run is well controlled with the run mean near the center line. The control limits also are reduced around this point, suggesting that the first replicate in this run was just a high value, but within the expected within run variation.
 
@@ -460,23 +402,20 @@ vRepIndReport$IChart
 #| label: tbl-vRepIndChtStats
 #| tbl-cap: Variable replicates Individuals Chart Data
 
-vRepIndStatsHead <- vRepIndReport$IChartData %>% 
+vRepIndStatsHead <- read_csv("Reports/vRepsData_2025-07-07 20_48_00.53638/vRepsData_IChartData_tbl.csv") %>% 
   slice_head(n = 10) %>% 
+  mutate(n = as.character(n)) %>%
   gt() %>% 
+  fmt_number(n_sigfig = 3) %>% 
   tab_header(title = 'Variable Replicates Individuals Chart Data')
 
 vRepIndStatsHead
 
 ```
 
-The data and statistics are shown in . Since this method uses only the first replicate in every run, there are no gaps in the graph or NA values in the data table.
+The data and statistics are shown in @tbl-vRepIndChtStats. Since this method uses only the first replicate in every run, there are no gaps in the graph or NA values in the data table.
 
-```{r}
-#| label: fig-vRepMRChart
-#| fig-cap: Moving Range chart of the variable replicates data.
-
-vRepIndReport$MRChart
-```
+![Moving Range chart of the variable replicates data.](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_MRaFig_2025-07-07%2020_46_51.265325.png){#fig-vRepMRChart}
 
 The Moving Range plot, @fig-vRepMRChart, provides an view of the within run variability without any gaps for the runs with singlet data.
 
@@ -484,9 +423,10 @@ The Moving Range plot, @fig-vRepMRChart, provides an view of the within run vari
 #| label: tbl-vRepMRChartStats
 #| tbl-cap: Variable Replicates MR Chart Statistics
 
-vRepMRchartStatsHead <- vRepIndReport$MRChartData %>% 
+vRepMRchartStatsHead <- read_csv("Reports/vRepsData_2025-07-07 20_48_00.53638/vRepsData_MChartData_tbl.csv") %>%
+  mutate(n = as.character(n)) %>%
   slice_head(n = 10) %>% 
-  gt()  %>% 
+  gt() %>% 
   fmt_number(n_sigfig = 3) %>%  
   tab_header(title = 'Variable Replicates MR Chart Data')
 
@@ -496,14 +436,7 @@ vRepMRchartStatsHead
 
 @tbl-vRepMRChartStats shows the associated data and statistics for the Moving Range plot.
 
-```{r}
-#| label: fig-vRepsMSRChart
-#| fig-cap: MSR chart of the variable replicates data.
-
-vRepsMSRReport <- msr_calc(vRepsData, 'Variable Replicates', msrWindow)
-
-vRepsMSRReport$MSRChart
-```
+![MSR chart of the variable replicates data.](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_MSRFig_2025-07-07%2020_46_51.267377.png){#fig-vRepsMSRChart}
 
 The MSR plot, @fig-vRepsMSRChart, uses all the available replicate data and can be interpreted as described in the constant replicates example. Since most of the runs include replicates, it does not have the sample size issues discussed in the single replicate example.
 
@@ -511,7 +444,7 @@ The MSR plot, @fig-vRepsMSRChart, uses all the available replicate data and can 
 #| label: tbl-vRepsMSRData
 #| tbl-cap: Variable Replicates MSR Data
 
-vRepsMSRHead <- vRepsMSRReport$MSRData %>% 
+vRepsMSRHead <- read_csv("Reports/vRepsData_2025-07-07 20_48_00.53638/vRepsData_MSRData_tbl.csv") %>%
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
@@ -561,48 +494,48 @@ extract_ctrlCht_params <- function(endDate, ccData, ccType) {
 }
 
 # Create subset of cRepsData with n = 1-3 for illustrating the impact of n ---------------------
-cRepsFirst <- cRepsData |> # n = 1
-  group_by(Run) |>
+cRepsFirst <- cRepsData %>% # n = 1
+  group_by(Run) %>%
   summarise_all(first)
 
-cRepsLast <- cRepsData |>
-  group_by(Run) |>
+cRepsLast <- cRepsData %>%
+  group_by(Run) %>%
   summarise_all(last)
 
-cRepsMid <- anti_join(cRepsData, cRepsFirst) |>
+cRepsMid <- anti_join(cRepsData, cRepsFirst) %>%
   anti_join(cRepsLast)
 
-cReps2nd <- cRepsMid |>
-  group_by(Run) |>
+cReps2nd <- cRepsMid %>%
+  group_by(Run) %>%
   summarise_all(first)
 
-cReps2 <- cRepsFirst |> # n = 2
-  rbind(cReps2nd) |>
+cReps2 <- cRepsFirst %>% # n = 2
+  rbind(cReps2nd) %>%
   arrange(Run)
 
-cReps3 <- cReps2 |> # n = 3
-  rbind(cRepsLast) |>
+cReps3 <- cReps2 %>% # n = 3
+  rbind(cRepsLast) %>%
   arrange(Run)
 
 # xBar chart parameters for every run over time for each n = 1, 2, 3, 6 -------------------
-xBarTL1 <- runDates |> # n = 1
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsFirst, ccType = "i")) |>
-  list_rbind() |>
+xBarTL1 <- runDates %>% # n = 1
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsFirst, ccType = "i")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
-xBarTL2 <- runDates |> # n = 2
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps2, ccType = "xbar")) |>
-  list_rbind() |>
+xBarTL2 <- runDates %>% # n = 2
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps2, ccType = "xbar")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
-xBarTL3 <- runDates |> # n = 3
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps3, ccType = "xbar")) |>
-  list_rbind() |>
+xBarTL3 <- runDates %>% # n = 3
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps3, ccType = "xbar")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
-xBarTL6 <- runDates |> # n = 6
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "xbar")) |>
-  list_rbind() |>
+xBarTL6 <- runDates %>% # n = 6
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "xbar")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
 xBarTL1Head <- xBarTL1 %>% 
@@ -684,24 +617,24 @@ The variability in the parameters for the mean potency is shown in @fig-xBarTL, 
 #| fig-cap: Variability control chart parameters vary with both the number of replicates and the number of runs. This includes the Center Line (CL) in blue, which is the mean Potency, and the the Control Limits (UCL and LCL) in red.
 
 # Schart parameters for every run over time for n = 1, 2, 3, 6 ----------------
-sChartTL1 <- runDates |> # n = 1
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsFirst, ccType = "mr")) |>
-  list_rbind() |>
+sChartTL1 <- runDates %>% # n = 1
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsFirst, ccType = "mr")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
-sChartTL2 <- runDates |> # n = 2
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps2, ccType = "s")) |>
-  list_rbind() |>
+sChartTL2 <- runDates %>% # n = 2
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cReps2, ccType = "s")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
-sChartTL3 <- runDates |> # n = 3
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "s")) |>
-  list_rbind() |>
+sChartTL3 <- runDates %>% # n = 3
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "s")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
-sChartTL6 <- runDates |> # n = 6
-  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "s")) |>
-  list_rbind() |>
+sChartTL6 <- runDates %>% # n = 6
+  map(\(x) extract_ctrlCht_params(endDate = x, ccData = cRepsData, ccType = "s")) %>%
+  list_rbind() %>%
   rename(Run = x, CL = cl, UCL = ucl, LCL = lcl, n_Runs = n.obs)
 
 # Create SchartTL figure ----------------
@@ -748,27 +681,26 @@ If the reference compound out of control, the data from the entire experiment ma
 
 When a cause can not be easily identified, it is important to remember that this simply might be random error and a repeat of the experiment could resolve the problem. Simply repeating the experiment, may resolve the issue. If it is not feasible to repeat the experiment with all of the test samples, then the assay should be repeated with just the reference compound(s) to confirm the problem, before making any changes to the validated protocol.
 
-```{r}
-#| label: fig-cRepsOutxBar
-#| fig-cap: Xbar control chart for suspect run
+::: {#fig-outlier layout-nrow=2}
 
-# cRepsData up to suspect run
-cRepsOutData <- filter(cRepsData, Run <= runDates[20])
+![](Reports/cRepsOutData_2025-07-07%2020_49_06.502218/cRepsOutData_XbrFig_2025-07-07%2020_48_19.233482.png)
 
-cRepsOutReport <- xbars_charts(cRepsOutData, usrtitle = "Constant Replicates")
+![](Reports/cRepsOutData_2025-07-07%2020_49_06.502218/cRepsOutData_SchFig_2025-07-07%2020_48_19.234251.png)
 
-cRepsOutCharts <- cRepsOutReport$XbarChart / cRepsOutReport$SChart
+Outlier Control charts. 
+:::
 
-cRepsOutCharts
-```
-
-@fig-cRepsOutxBar shows the control charts for the suspect run. Since the last data point in the Xbar chart falls just below the Lower Control Limit, the run needs to be investigated. However, the S chart shows that the variability for that run appears to fine, so it is possible that this is simply random noise.
+@fig-outlier shows the control charts for the suspect run. Since the last data point in the Xbar chart falls just below the Lower Control Limit, the run needs to be investigated. However, the S chart shows that the variability for that run appears to fine, so it is possible that this is simply random noise.
 
 ```{r}
 #| label: tbl-cRepsOutRun
 #| tbl-cap: Replicate data for the suspect run.
 
-cRepsOutRun <- cRepsOutData %>% 
+cRepsOutRun <- read_csv("TestData/DocData/cRepsOutData.csv")
+
+runDates <- unique(cRepsOutRun$Run)
+
+cRepsOutRun <- cRepsOutRun %>%
   filter(Run == runDates[20]) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
