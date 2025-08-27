@@ -1,56 +1,18 @@
 # Environment set up-------------------------------------
-
 library(tidyverse)
 library(qicharts2)
 library(slider)
 
+# Functions for Control Charts and MSR calculations --------------------
+# Server side functions and constants for Shiny app
 
+# Minimum number of runs for the Window MSR. Remove from Shiny server, if you
+# want to allow user to set this.
+msrWindow <- 6
 
-# Generate n random potency values consistent with true potency and MSR --------------------
-# inputs and outputs are on the linear scale
-
-pot_gen <- function(n, Pot, Msr) {
-  10^(rnorm(n = n, mean = log10(Pot), sd = (log10(Msr) / (2 * sqrt(2)))))
-}
-
-# Function to generate test data with the same number of replicates per run -----------------
-# inputs and outputs are on the linear scale
-# truePot = expected mean potency value
-# trueMsr = expected Minimum Significant Ratio
-# numRuns the number of experiments simulated
-
-# maxReps the number of replicates per run if varReps is FALSE
-# dates if TRUE generates a a sequence of dates for the Run identifier, if FALSE an integer sequence is generated
-# varReps if TRUE generates a random number of replicates within each run between 1:maxReps, if FALSE all runs get the number of replicates specified in maxReps
-
-tstdata <- function(truePot, trueMsr, numRuns, minReps, maxReps, varReps = TRUE, dates = TRUE) {
-  Run <- if (dates) {
-    seq(from = mdy("1/1/2023"), by = "1 week", length.out = numRuns)
-  } else {
-    c(1:NumRun)
-  }
-
-  Data <- vector("list", length = length(Run))
-
-  for (i in seq_along(Run)) {
-    Reps <- ifelse(varReps, sample(minReps:maxReps, 1), maxReps)
-    Data[[i]] <- pot_gen(n = Reps, Pot = truePot, Msr = trueMsr)
-  }
-
-  Output <- tibble(Run, Data) %>%
-    unnest(Data)
-
-  Output
-}
-
-
-pow10 <- function(x) {
-  10^x
-} # simplifies anitloging within other functions like across()
-
-# Minimum number of runs for the Window MSR.  Could be changed to a larger number in UI if approved.
-
-msrWindow <- 6 # could be changed or user input in future.
+# Function to calculate 10^x, used in mutate(across(...)) to simplify
+# antilogging within other functions like across()
+pow10 <- function(x) { 10^x }
 
 # Extract relevant columns from qic data frame. --------------------
 qic_extract <- function(df) {
@@ -95,7 +57,8 @@ plot_data <- function(df) {
 
   df <- df %>%
     mutate(
-      RunLabel = if_else(runs.signal == FALSE & sigma.signal == FALSE, "In Control",
+      RunLabel = if_else(runs.signal == FALSE & sigma.signal == FALSE,
+                         "In Control",
         if_else(runs.signal & sigma.signal, "Both Flags",
           if_else(sigma.signal == TRUE, "Control Limit Flag", "Run Flag")
         )
@@ -107,15 +70,19 @@ plot_data <- function(df) {
       )
     ) %>%
     select(!(ends_with("signal") | n)) %>%
-    pivot_longer(cols = all_of(dataCols), names_to = "Line", values_to = "Data") %>%
+    pivot_longer(cols = all_of(dataCols),
+                 names_to = "Line",
+                 values_to = "Data") %>%
     mutate(Lines = if_else(Line == "Data", "Data",
       if_else(Line == "CL", "Center Line", "Control Limit")
     ))
 }
 
 # Basic control chart with center line and control limits -----------------
-# Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
-# This requires data for the plot to be in tidy format (tall) with all y values in the same column and a separate column to specify the groups.
+# Using geom_line for the reference lines as well as data allows the labels,
+# linetytpes, ... to show up in legend instead of manually coding position in
+# plot. This requires data for the plot to be in tidy format (tall) with all y
+# values in the same column and a separate column to specify the groups.
 # Specific axis and chart labels are applied within the data analysis functions.
 
 ctrl_cht <- function(plotdata) {
@@ -125,27 +92,39 @@ ctrl_cht <- function(plotdata) {
 
   ggplot(plotdata, aes(x = Run, y = Data, group = Line, color = Lines)) +
     geom_line() +
-    geom_point(data = plotdata %>% filter(Line == "Data"), show.legend = FALSE) +
-    scale_colour_manual(values = c("Data" = "black", "Center Line" = "mediumblue", "Control Limit" = "red")) +
+    geom_point(data = plotdata %>% filter(Line == "Data"),
+               show.legend = FALSE) +
+    scale_colour_manual(values = c("Data" = "black",
+                                   "Center Line" = "mediumblue",
+                                   "Control Limit" = "red")) +
     labs(caption = Report) +
     theme_light() +
     theme(legend.position = "right")
 }
 
-# Basic control chart with log scale for y axis with center line and control limits -----------------
-# Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
-# This requires data for the plot to be in tidy format (tall) with all y values in the same column and a separate column to specify the groups.
-# Specific axis and chart labels are applied within the data analysis functions.
+# Basic control chart with log scale for y axis with center line and control
+# limits ----------------- Using geom_line for the reference lines as well as
+# data allows the labels, linetytpes, ... to show up in legend instead of
+# manually coding position in plot. This requires data for the plot to be in
+# tidy format (tall) with all y values in the same column and a separate column
+# to specify the groups. Specific axis and chart labels are applied within the
+# data analysis functions.
 
 log_ctrl_cht <- function(plotdata) {
   Report <- check_run(plotdata)
 
   plotdata <- plot_data(plotdata)
 
-  chart <- ggplot(plotdata, aes(x = Run, y = Data, group = Line, color = Lines)) +
+  chart <- ggplot(plotdata, aes(x = Run,
+                                y = Data,
+                                group = Line,
+                                color = Lines)) +
     geom_line() +
-    geom_point(data = plotdata %>% filter(Line == "Data"), show.legend = FALSE) +
-    scale_colour_manual(values = c("Data" = "black", "Center Line" = "mediumblue", "Control Limit" = "red")) +
+    geom_point(data = plotdata %>% filter(Line == "Data"),
+               show.legend = FALSE) +
+    scale_colour_manual(values = c("Data" = "black",
+                                   "Center Line" = "mediumblue",
+                                   "Control Limit" = "red")) +
     scale_y_continuous(trans = "log10") +
     labs(caption = Report) +
     theme_linedraw() +
@@ -185,10 +164,18 @@ msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
     filter(row_number() >= msrWindow)
 
   PlotData <- MsrData %>%
-    pivot_longer(cols = starts_with("MSR"), names_to = "MSR_type", names_prefix = "MSR_", values_to = "MSR") %>%
-    mutate(MSR_type = if_else(MSR_type == "Cum", "Cumulative", paste0("Last ", msrWindow, " Runs")))
+    pivot_longer(cols = starts_with("MSR"),
+                 names_to = "MSR_type", names_prefix = "MSR_",
+                 values_to = "MSR") %>%
+    mutate(MSR_type = if_else(MSR_type == "Cum",
+                              "Cumulative",
+                              paste0("Last ", msrWindow, " Runs")))
 
-  MsrChart <- ggplot(PlotData, aes(x = Run, y = MSR, group = MSR_type, color = MSR_type)) +
+  MsrChart <- ggplot(PlotData,
+                     aes(x = Run,
+                         y = MSR,
+                         group = MSR_type,
+                         color = MSR_type)) +
     geom_line() +
     labs(
       title = "MSR Chart",
@@ -202,10 +189,9 @@ msr_calc <- function(workingData, usrTitle, msrWindow = 6) {
   MsrChartReport <- list(MSRData = MsrData, MSRChart = MsrChart)
 }
 
-
 # Individual Data Analysis ---------------------------
 ind_charts <- function(usrdata, usrtitle) {
-  # Remove any n > 1 replicates, transform the data for control Chart analysis and moving range (MR) calculation
+  # Remove any n > 1 replicates, transform the data for control Chart analysis
   usrdata <- usrdata %>%
     group_by(Run) %>%
     summarise(Data = first(Data)) %>%
@@ -213,7 +199,10 @@ ind_charts <- function(usrdata, usrtitle) {
 
   # Individual Chart (DataChart)
 
-  IChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = "i", return.data = TRUE)) %>%
+  IChartData <- as_tibble(qic(x = usrdata$Run,
+                              y = log10(usrdata$Data),
+                              chart = "i",
+                              return.data = TRUE)) %>%
     qic_extract() %>%
     mutate(
       n = as.character(n),
@@ -232,7 +221,10 @@ ind_charts <- function(usrdata, usrtitle) {
 
   # Moving Range Chart (VarChart)
 
-  MRChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = "mr", return.data = TRUE)) %>%
+  MRChartData <- as_tibble(qic(x = usrdata$Run,
+                               y = log10(usrdata$Data),
+                               chart = "mr",
+                               return.data = TRUE)) %>%
     qic_extract() %>%
     mutate(
       n = as.character(n),
@@ -250,13 +242,18 @@ ind_charts <- function(usrdata, usrtitle) {
     rename(`MR(fold)` = Data)
 
 
-  Output <- list(IChartData = IChartData, IChart = IChart, MRChart = MRChart, MRChartData = MRChartData)
+  Output <- list(IChartData = IChartData,
+                 IChart = IChart,
+                 MRChart = MRChart,
+                 MRChartData = MRChartData)
 }
 
 # Replicate Standard Deviation Charts ------------------------
 
 xbars_charts <- function(usrdata, usrtitle) {
-  XbarChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = "xbar", return.data = TRUE)) %>%
+  XbarChartData <- as_tibble(qic(x = usrdata$Run,
+                                 y = log10(usrdata$Data), chart = "xbar",
+                                 return.data = TRUE)) %>%
     qic_extract() %>%
     mutate(
       n = as.character(n),
@@ -277,30 +274,34 @@ xbars_charts <- function(usrdata, usrtitle) {
 
   # S Chart (VarChart)
 
-  SChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = "s", return.data = TRUE)) %>%
+  SChartData <- as_tibble(qic(x = usrdata$Run,
+                              y = log10(usrdata$Data),
+                              chart = "s", return.data = TRUE)) %>%
     qic_extract() %>%
     mutate(
       n = as.character(n),
       across(where(is.numeric), pow10)
     )
 
-  singlets <- sum(is.na(SChartData$Data)) # number of singlet runs with missing FSD values
-
+  # number of singlet runs with missing FSD values
+  singlets <- sum(is.na(SChartData$Data))
 
   SChart <- log_ctrl_cht(plotdata = SChartData)
   SChart <- SChart +
     labs(
       title = paste0("S Chart - ", usrtitle),
       y = "Fold Std. Dev.",
-      subtitle = paste("*", singlets, "missing values from runs with a single replicate.")
+      subtitle = paste("*",
+                       singlets,
+                       "missing values from runs with a single replicate.")
     )
 
   SChartData <- SChartData %>%
     rename(`Std.Dev(fold)` = Data)
-
-  message <- if (singlets > 0) {
-    paste(singlets, "runs contained only 1 replicate. You may want to also run an Individuals analysis to assess the variability.")
   }
 
-  Output <- list(XbarChartData = XbarChartData, XbarChart = XbarChart, SChart = SChart, SChartData = SChartData, Message = message)
+  Output <- list(XbarChartData = XbarChartData,
+                 XbarChart = XbarChart,
+                 SChart = SChart,
+                 SChartData = SChartData)
 }
