@@ -1,4 +1,6 @@
 # Test code to have run.signal be set to FALSE until a mean shift is detected.
+library(tidyverse)
+library(qicharts2)
 
 usrdata <- read_csv("TestData/MeanShiftData.csv")
 
@@ -37,7 +39,11 @@ extract_ccData <- function(usrdata, chart) {
   runs <- unique(usrdata$Run)
 
   ccData <- runs %>%
-    map(\(x) extract_ccRunData(endRun = x, usrdata = usrdata, chart = chart)) %>%
+    map(\(x) extract_ccRunData(
+      endRun = x,
+      usrdata = usrdata,
+      chart = chart
+    )) %>%
     list_rbind() %>%
     rename(Run = x, n = y.length) %>%
     mutate(
