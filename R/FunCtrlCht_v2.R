@@ -202,10 +202,10 @@ log_ctrl_cht <- function(plotdata) {
 # MSR Analysis and Charts -----------------------------------
 
 msr_calc <- function(usrdata, usrtitle, msrWindow = 6) {
-  usrdata <- usrdata %>%
+  workingData <- workingData %>%
     mutate(Log10Pot = log10(Data))
 
-  MsrCum <- usrdata %>%
+  MsrCum <- workingData %>%
     mutate(
       sd_Cum = slide_dbl(Log10Pot, sd, .before = Inf),
       MSR_Cum = 10^(2 * sqrt(2) * sd_Cum)
@@ -214,7 +214,7 @@ msr_calc <- function(usrdata, usrtitle, msrWindow = 6) {
     summarise(MSR_Cum = last(MSR_Cum)) %>%
     ungroup()
 
-  MsrWin <- usrdata %>%
+  MsrWin <- workingData %>%
     nest(.by = Run) %>%
     mutate(WindowData = slide(data, list_c, .before = (msrWindow - 1))) %>%
     unnest(WindowData) %>%

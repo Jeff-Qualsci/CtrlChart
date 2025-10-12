@@ -1,0 +1,184 @@
+---
+title: "Control Charting Update"
+author: "Jeff Weidner"
+format: html
+execute:
+  echo: false
+  messages:  false
+  warning: false
+  error: false
+editor: visual
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(gt)
+library(gtExtras)
+
+source("R/FunCtrlCht.R")
+```
+
+Mean Shift (runs.signal) Flags
+
+The Control Charting web tool relies on the qicharts2 package to perform the statistical analysis for all of the control charts. This analysis uses 2 flags to identify runs which are out of control. The sigma.signal (Outside Limits) simply identifies runs where the plotted statistic falls outside of the calculated control limits is very easy to understand. The runs.signal (Mean Shift) compares the plotted statistic to the Center Line. It calculates 2 theoretical test statistics assuming the variability in the run data is random and normally distributed, n.crossings.min (minimum number of times the plotted statistic is expected to cross the Center Line) and longest.run.max (the maximum number of consecutive data points that are all on one side of the Center Line). It then compares these test statistics to the observed n.crossings and longest.run calculated for each individual run based on all of the preceeding data to set the flag to TRUE. These tests are intended to test more subtle changes in the Run Data which are based upon a series of runs which indicate a non-random change from the previously estimated population statistics. As such they will not indicate a problem until several runs after whatever change to the assay has occurred.
+
+## Current Web Tool Behavior.
+
+When testing the current behavior of the web tool with a data file designed to trigger the Mean Shift flag, we discovered some problematic behavior with the runs.signal flag. Rather than appearing as FALSE until the triggering run, like the sigma.signal flag, all of the runs are given a TRUE value. This makes it very difficult to identify the runs affected by the problem.
+
+![Current Xbar chart of mean shift data.](Reports/MeanShiftData_2025-09-15%2018_57_22.026062/MeanShiftData_XbrFig_2025-09-15%2018_55_37.584355.png){#xbar_current}
+
+```{r}
+#| label: tbl-wt_xbar_data
+#| tbl-cap: Web tool Xbar Chart Data
+
+  wtXbarData <- read_csv("Reports/MeanShiftData_2025-09-15 18_57_22.026062/MeanShiftData_XbarChartData_tbl.csv")
+
+wtXbarData <- wtXbarData %>% 
+  gt() %>% 
+  tab_header(title = 'Web tool Xbar Chart Data')
+
+wtXbarData
+```
+
+## Proposed Fix for Mean Shift Flag
+
+Phil and I were able to modify the web tool code so that the runs.signal flag now returns a value of FALSE except when the specificied conditions are met. Below are plots and data tables from the revised code to illustrate the changes.
+
+```{r}
+#| label: qic_fix
+
+shiftData <- read_csv("TestData/MeanShiftData.csv")
+reportTitle <- "qic_fix() Test."
+
+repsReport <- xbars_charts(shiftData, reportTitle)
+indReport <- ind_charts(shiftData, reportTitle)
+msrReport <- msr_calc(shiftData, reportTitle)
+
+```
+
+## qic_fix() Replicates
+
+```{r}
+#| label: fig-XbarChart
+#| fig-cap: Xbar Chart of Mean Shift Data
+
+repsReport$XbarChart
+
+```
+
+@fig-XbarChart shows the Xbar chart for the mean shift data. Note the updated caption text for approval.
+
+```{r}
+#| label: tbl-XbarData
+#| tbl-cap: Data from the Xbar Chart of the Mean Shift data set.
+
+xbarData <- repsReport$XbarChartData %>% 
+  gt() %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Updated Xbar Chart Data')
+  
+xbarData
+```
+
+@tbl-wt_xbar_data is the updated data table for the Xbar chart data note that the columns have been reordered so that the test statistics and flags are next to one another to facilitate interpretation by the user. This table also uses the updated column names. (Note: Outside of Control Limits was shortened to Outside Limits.) The Mean Shift flag only shows as TRUE after the test conditions have been met.
+
+```{r}
+#| label: fig-SChart
+#| fig-cap: S Chart of Mean Shift Data
+
+repsReport$SChart
+```
+
+@fig-SChart shows the corresponding S Chart for the data, which is in control.
+
+```{r}
+#| label: tbl-SChartData
+#| tbl-cap: Data from the S Chart of the Mean Shift data set.
+
+sChartData <- repsReport$SChartData %>% 
+  slice_head(n = 5) %>% 
+  gt() %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Updated S Chart Data')
+  
+sChartData
+```
+
+@tbl-SChartData shows the first few rows of the S chart data with the updated row names and order.
+
+These code changes were also made for the Individuals chart and Moving Range chart.
+
+```{r}
+#| label: fig-iChart
+#| fig-cap: Individuals Chart of Mean Shift Data.
+
+indReport$IChart
+```
+
+```{r}
+#| label: tbl-IChartData
+#| tbl-cap: Data from the Individuals Chart of the Mean Shift data set.
+
+iChartData <- indReport$IChartData %>% 
+  slice_head(n = 5) %>% 
+  gt() %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Updated Individuals Chart Data')
+  
+iChartData
+```
+
+```{r}
+#| label: fig-mrChart
+#| fig-cap: Moving Range Chart of Mean Shift Data.
+
+indReport$MRChart
+
+```
+
+```{r}
+#| label: tbl-MRChartData
+#| tbl-cap: Data from the Moving Range Chart of the Mean Shift data set.
+
+mrChartData <- indReport$MRChartData %>% 
+  slice_head(n = 5) %>% 
+  gt() %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Updated Moving Range Chart Data')
+  
+mrChartData
+```
+
+No changes were made to the MSR code other than the changes to the column labels
+
+```{r}
+#| label: fig-msrChart
+#| fig-cap: MSR Chart of Mean Shift Data.
+
+msrReport$MSRChart
+
+```
+
+```{r}
+#| label: tbl-MSRData
+#| tbl-cap: Data from the MSR Chart of the Mean Shift data set.
+
+msrChartData <- msrReport$MSRData %>% 
+  slice_head(n = 5) %>% 
+  gt() %>% 
+  fmt_number(n_sigfig = 3) %>% 
+  tab_header(title = 'Updated MSR Chart Data')
+  
+msrChartData
+```
+
+## Next Steps
+
+All of the code changes are on the server side of the application and no changes are made to any column names until after the plots have been created, so I do not anticipate any significant problems when the code is deployed. However we need to have Dante look at the code to confirm this. The newest version of the code will be in R/FunCtrlChart_v2.R in my GitHub repository.
+
+If the scope of these changes is too large for Dante to implement, then we can roll back to the previous version with just the changes to the column labels. This code will be in R/FunCtrlChart.R in my GitHub repository
+
+Pending approval, I can push these updates on Thursday.
