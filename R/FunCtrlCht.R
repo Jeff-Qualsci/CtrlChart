@@ -254,7 +254,7 @@ msr_calc <- function(usrdata, usrtitle, msrWindow = 6) {
     geom_line() +
     labs(
       title = "MSR Chart",
-      subtitle = usrTitle,
+      subtitle = usrtitle,
       y = "MSR",
       x = "Run"
     ) +

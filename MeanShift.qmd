@@ -20,9 +20,9 @@ library(gtExtras)
 source("R/FunCtrlCht.R")
 ```
 
-Mean Shift (runs.signal) Flags
+### Mean Shift (runs.signal) Flags
 
-The Control Charting web tool relies on the qicharts2 package to perform the statistical analysis for all of the control charts. This analysis uses 2 flags to identify runs which are out of control. The sigma.signal (Outside Limits) simply identifies runs where the plotted statistic falls outside of the calculated control limits is very easy to understand. The runs.signal (Mean Shift) compares the plotted statistic to the Center Line. It calculates 2 theoretical test statistics assuming the variability in the run data is random and normally distributed, n.crossings.min (minimum number of times the plotted statistic is expected to cross the Center Line) and longest.run.max (the maximum number of consecutive data points that are all on one side of the Center Line). It then compares these test statistics to the observed n.crossings and longest.run calculated for each individual run based on all of the preceeding data to set the flag to TRUE. These tests are intended to test more subtle changes in the Run Data which are based upon a series of runs which indicate a non-random change from the previously estimated population statistics. As such they will not indicate a problem until several runs after whatever change to the assay has occurred.
+The Control Charting web tool relies on the qicharts2 package to perform the statistical analysis for all of the control charts. This analysis uses 2 flags to identify runs which are out of control. The `sigma.signal` (Outside Limits) simply identifies runs where the plotted statistic falls outside of the calculated control limits is very easy to understand. The `runs.signal` (Mean Shift) compares the plotted statistic to the Center Line. It calculates 2 theoretical test statistics assuming the variability in the run data is random and normally distributed, `n.crossings.min` (minimum number of times the plotted statistic is expected to cross the Center Line) and `longest.run.max` (the maximum number of consecutive data points that are all on one side of the Center Line). It then compares these test statistics to the observed n.crossings and `longest.run` calculated for each individual run based on all of the preceeding data to set the flag to TRUE. These tests are intended to test more subtle changes in the Run Data which are based upon a series of runs which indicate a non-random change from the previously estimated population statistics. As such they will not indicate a problem until several runs after whatever change to the assay has occurred.
 
 ## Current Web Tool Behavior.
 
@@ -59,7 +59,7 @@ msrReport <- msr_calc(shiftData, reportTitle)
 
 ```
 
-## qic_fix() Replicates
+### Mean Shifted Replicates
 
 ```{r}
 #| label: fig-XbarChart
@@ -108,6 +108,8 @@ sChartData
 ```
 
 @tbl-SChartData shows the first few rows of the S chart data with the updated row names and order.
+
+### Mean Shifted Singlets
 
 These code changes were also made for the Individuals chart and Moving Range chart.
 
@@ -175,10 +177,10 @@ msrChartData <- msrReport$MSRData %>%
 msrChartData
 ```
 
-## Next Steps
+## Impact on Web Tool
 
-All of the code changes are on the server side of the application and no changes are made to any column names until after the plots have been created, so I do not anticipate any significant problems when the code is deployed. However we need to have Dante look at the code to confirm this. The newest version of the code will be in R/FunCtrlChart_v2.R in my GitHub repository.
+The web tool team has requested that several minor changes be made to the Control Charting tool, primarily impacting figure titles and axis labels, column header names. These should apply to the UI, html report, and downloaded .png and .csv files as described in the [document](https://app.box.com/s/u8ccadfsj2ix6do2a2eu5e8o1rmxyk4p) on the Box server.
 
-If the scope of these changes is too large for Dante to implement, then we can roll back to the previous version with just the changes to the column labels. This code will be in R/FunCtrlChart.R in my GitHub repository
+My understanding of the web tool architecture is that it primarily relies on the code from the [CtrlChart repository](https://github.com/Jeff-Qualsci/CtrlChart) on both the server and ui sides of the shiny app. This includes the logic for selecting the appropriate control charting functions `(ind_charts`, `xbars_charts`, and `msr_calc`) as well as the underlying code these functions implement. The data tables returned by these functions are then used both for the presented data tables and to create the associated figures in plotly. The ggplot figures in the r code are only used as a reference and any changes to figure titles, labels, etc. (as specified in the linked document must be implemented in plotly.
 
-Pending approval, I can push these updates on Thursday.
+The primary control charting function names and parameters are unchanged from the earlier version of the code. However the underlying code as well as helper functions have changed to address the issue identified above. Any changes to the column names in data tables have only been made when the data tables are being added to the report object returned by the control charting functions. The updated column names use the tidyverse \`\` convention which allows for spaces and other non-standard characters within r object names (e.g. \`Center Line\`). If these objects are used with other functions that support the tidyverse (e.g. readr::write_csv or gt::gt) these back ticks will be automatically removed from the ouptut objects. However the back ticks must be used if the objects are passed to any functions that only support base r.

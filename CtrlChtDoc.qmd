@@ -681,13 +681,12 @@ If the reference compound out of control, the data from the entire experiment ma
 
 When a cause can not be easily identified, it is important to remember that this simply might be random error and a repeat of the experiment could resolve the problem. Simply repeating the experiment, may resolve the issue. If it is not feasible to repeat the experiment with all of the test samples, then the assay should be repeated with just the reference compound(s) to confirm the problem, before making any changes to the validated protocol.
 
-::: {#fig-outlier layout-nrow=2}
-
+::: {#fig-outlier layout-nrow="2"}
 ![](Reports/cRepsOutData_2025-07-07%2020_49_06.502218/cRepsOutData_XbrFig_2025-07-07%2020_48_19.233482.png)
 
 ![](Reports/cRepsOutData_2025-07-07%2020_49_06.502218/cRepsOutData_SchFig_2025-07-07%2020_48_19.234251.png)
 
-Outlier Control charts. 
+Outlier Control charts.
 :::
 
 @fig-outlier shows the control charts for the suspect run. Since the last data point in the Xbar chart falls just below the Lower Control Limit, the run needs to be investigated. However, the S chart shows that the variability for that run appears to fine, so it is possible that this is simply random noise.
