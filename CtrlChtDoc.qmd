@@ -30,15 +30,15 @@ set.seed(9031962) # for reproducibility
 source('R/FunCtrlCht.R')
 ```
 
-Control charts were originally developed by Walter Shewhart [@shewhart1926] at Bell Labs as a tool to monitor the quality of a process over time. They are commonly used in many fields to both document quality and identify potential problems before they become significant. Control charts analyze a measurement of a process characteristic made repeatedly over time. If the process is reproducible, then these measurements should show only normal random variation within an acceptable range. Additionally, the variation between different measurement samples should also be random and normally distributed around the true variation in the process. When both of these conditions are met, the process is said to be **in control**. Control charts may also provide signals of potential issues which can be addressed before they become serious enough to cause problems.
+Control charts were originally developed by Walter Shewhart [@shewhart1926] at Bell Labs as a tool to monitor the quality of a process over time. They are commonly used in many fields to both document quality and identify potential problems before they become significant. Control charts analyze a measurement of a process characteristic made repeatedly over time. If the process is reproducible, then these measurements should show only normally distributed, random variation within an acceptable range. Additionally, any estimates of the population mean or variability for the measurement derived from population samples, should be normally distributed around the true values for the population. When both of these conditions are met, the process is said to be **in control**. Control charts may also provide signals of potential issues which can be addressed **before** they become serious enough to cause problems.
 
-Before moving an assay into routine operation, it is important to have some initial measurement of its inherent variability, such as the [replicate-experiment]{.underline} [@iversen2012] to demonstrate reproducibility across 2 runs.
+Before moving an assay into routine operation, it is important to have some initial measurement of its inherent variability, such as the [replicate-experiment]{.underline} [@iversen2012] to demonstrate reproducibility across 2 runs. However this method does not address the variability between multiple experiments.
 
-This tool focuses on the use of control charts to monitor assay performance in a biological laboratory using potency of a reference compound as the standard measurement of process performance. Data from these assays may be generated across extended periods of time (months to years) and it's important to document that the data collected across the lifetime of an assay is consistent and the data for non-reference compounds should be comparable across the lifetime of the assay.
+This tool focuses on the use of control charts to monitor assay performance in a biological laboratory using the potency of a reference compound as the standard measurement of process performance. Data from these assays may be generated across extended periods of time (months to years) and it's important to document that the data collected across the lifetime of an assay is consistent and the data for non-reference compounds should be comparable across the lifetime of the assay.
 
 ## Control Chart Basics
 
-Control charts attempt to distinguish between two types of variation, **common cause** and **for cause** variation. **Common cause** variation is simply the normal random variation for which no cause can be assigned. While, as the name would suggest, **for cause** variation suggests that there may be specific cause(s) contributing to the overall observed variability. For example, a validated bioassay should be robust to small changes for factors such as cell number, reagent composition, lab environment, etc. but at some point these differences may become large enough to significantly impact the results from the assay. ***Note: The appearance of for cause variation does not identify the nature of the cause(s). Investigation is required to identify the root cause(s) of the unexpected variation.***
+Control charts attempt to distinguish between two types of variation, **common cause** and **for cause** variation. **Common cause** variation is simply the normal random variation for which no cause can be assigned. While, as the name would suggest, **for cause** variation implies that there may be specific cause(s) contributing to the overall observed variability. For example, a validated bioassay should be robust to small changes for factors such as cell number, reagent composition, lab environment, etc. but at some point these differences may become large enough to significantly impact the results from the assay. ***Note: The appearance of for cause variation does not identify the nature of the cause(s). Investigation is required to identify the root cause(s) of the unexpected variation.***
 
 Control charting uses the concept of runs to help distinguish between these two types of variability. A run can be defined as a group of process iterations for which all the known or suspected sources of variability are assumed to be consistent. In the laboratory a run can often be equated with a single experiment where working reagents/cells are prepared, no instrumentation drifts/failures are expected, and so on. It's expected that there may be small differences between experiments in the preparation of the working materials for any given experiment and do not generally impact comparison of data between experiments, so the data from either a single plate experiment or a multi-plate experiment are aggregated into a single run. It is this **within run** variability that is used to estimate the control limits for the data. However significant changes in any of many variables would be expected to have an impact on the measurement that is being monitored (e.g. a change in substrate concentration or an incubator not functioning as expected). The measurements for these runs would be expected to be different and would be flagged because of **for cause** differences. Those runs would then be considered to be out of control.
 
@@ -46,19 +46,25 @@ While there are different types of control charts, depending on the measurement 
 
 In control charting, each new run is evaluated as a sample of the population of all the available data (current run and all previous runs). Therefore, according to the central limit theorem, the statistics for each sample are an estimate of the overall population statistics and are themselves normally distributed around the true statistics for the population. Control limits are then determined based on the normal distribution of the sample statistics (mean and standard deviation). The standard practice in control charting is to use p \< 0.01 to set the upper and lower control limits, to minimize false positives. If the data falls within these limits, then the process is said to be "in control" and is consistent with the expected variability. For simplicity, this discussion assumes that the sample size (n) is large enough (n \> 20) that no statistical adjustments are needed due to small sample size. In practice, run size may be smaller than this and the details of the calculations for these smaller runs are well documented [@guthrie].
 
-The data in control charts is always plotted in sequential order of the runs with the run identifier on the x-axis and the run statistic on the y-axis. While the value of the run identifier is not important to the analysis, it is strongly recommended that it is either a date or an integer value. This allows the runs to be sorted and ensure that the runs are in sequential order. This allows for additional tests of the data that can serve as a signal before the run values fall outside of the control limits. For example, there should be a 50% probability that any run will have a higher value than the mean for all of the runs, but the probability of having 8 consecutive runs with each run above (or below) the population mean is p = 0.0039 and should set an "out of control" signal to investigate for a cause.
+The data in control charts is always plotted in sequential order of the runs with the run identifier on the x-axis and the run statistic on the y-axis. While the value of the run identifier is not important to the analysis, it is strongly recommended that it is either a date or an integer value. This allows the runs to be sorted and ensure that the runs are in sequential order. The run identifier can now be treated as an ordinal factor which allows for additional tests of the data that can serve as a signal before the run values fall outside of the control limits. For example, there should be a 50% probability that any run will have a higher value than the mean for all of the runs, but the probability of having 8 consecutive runs with each run above (or below) the population mean is p = 0.0039 and should set an "out of control" signal to investigate for a cause.
 
 Standard statistical notation will be used to distinguish between population statistics ($mean = \mu \text{ or standard deviation} = \sigma$) and their sample counterparts ($\bar{X}$ or s).
 
-Control charts for continuous data use the within run variability (sdwi) to estimate the common cause variability for the population and calculate the control limits. The primary data chart used is the $\overline{X}$ Chart, which shows the run means ($\overline{X}$) and reference lines for the population mean (CL) and the upper and lower control limits (UCL, LCL) which are calculated as shown: $$CL = mean(\overline{X})$$$$Control Limits = CL \pm 3(\sigma_{wi})$$
+Control charts for continuous data use the within run variability ($\sigma_{wi}$) to estimate the common cause variability for the population and calculate the control limits. The primary data chart used is the $\overline{X}$ Chart, which shows the run means ($\overline{X}$) and reference lines for the population mean (CL) and the upper and lower control limits (UCL, LCL) which are calculated as shown:
+
+$$
+CL = mean(\overline{X})
+$$ {#eq-cl}
+
+$$
+Control Limits = CL \pm 3(\sigma_{wi})
+$$ {#eq-lims}
 
 There are two charts used for control charting of continuous data. Both charts first summarize the data within individual runs and then plot the summarized values in order to evaluate the individual runs in the context of all the available data to identify possible outliers or trends. The first plot (Xbar chart) examines the consistency of those measurements between different runs, while the second plot ( S chart) is used to evaluate the within run variability of all the available runs. Both charts should be considered together to fully interpret the analysis.
 
 ```{r}
 #| label: fig-basicXbar
 #| fig-cap: A typical Xbar chart.
-
-# Generate data for basic control charting
 
 runId <- c(1:30)
 
@@ -72,27 +78,21 @@ for (i in seq_along(runId)) {
 basicRunData <- tibble(runId, Data) %>% 
   unnest(Data)
 
-XbarChartData <- as_tibble(qic(x = basicRunData$runId, y = basicRunData$Data, chart = 'xbar', return.data = TRUE)) %>%
-  qic_extract()
+Measure <- basicRunData$Data
+Run <- basicRunData$runId
 
- XbarCht <-  ctrl_cht(XbarChartData)
+XbarCht <- qic(x = Run, y = Measure, chart = 'xbar', xlab = 'Run')
  
  XbarCht
 ```
 
-@fig-basicXbar is an example of an Xbar chart for a well controlled process. This chart is intended to emphasize the variability between runs, so it is scaled to include all of the run data points and the control limits, but may not include 0 on the y-axis. The data points represent the mean of all of the measurements within each run, while the center line is the mean of within run means. The control limits are calculated as described above and represent a 99% CI for the run summarized measurement values, based on the within run standard deviation (sd). These control limits will change as the number of runs in the charts increases, especially when the number of replicates in a run is small. There should be at least 6 runs before control charts are used to make decisions about any run, but it is recommended that control charting should be initiated as soon as it becomes apparent that the assay will be used repeatedly. Data points that fall outside of these control limits indicate runs that might be considered outliers and should be investigated to determine the cause of the anomaly. However, no changes should be made to a validated assay until a cause has been determined. The potential outlier, especially if it is a single run, may simply be random variability that will regress back towards the mean in the next run.
+@fig-basicXbar is an example of an Xbar chart for a well controlled process. This chart is intended to emphasize the variability between runs, so it is scaled to include all of the run data points and the control limits, but may not include 0 on the y-axis. The data points represent the mean of all of the measurements within each run, while the center line is the mean of within run means and estimates the population mean. The control limits are calculated as described above and represent a 99% CI for the run summarized measurement values, based on the within run standard deviation (sd). These control limits and the center line will change as the number of runs in the charts increases, especially when the number of replicates in a run is small @sec-ctrlLims. There should be at least 6 runs before control charts are used to make decisions about any run, but it is recommended that control charting should be initiated as soon as it becomes apparent that the assay will be used repeatedly. Data points that fall outside of these control limits indicate runs that might be considered outliers and should be investigated to determine the cause of the anomaly. However, no changes should be made to a validated assay until a cause has been determined. The potential outlier, especially if it is a single run, may simply be random variability that will regress back towards the mean in the next run.
 
 ```{r}
 #| label: fig-basicSChart
 #| fig-cap: A typical S chart.
 
-SChartData <- as_tibble(qic(x = basicRunData$runId, y = basicRunData$Data, chart = 's', return.data = TRUE)) %>%
-  qic_extract()
-
-SChart <- ctrl_cht(SChartData)
-
-SChart <- SChart +
-  labs(y = 'Std. Dev.')
+SChart <- qic(x = Run, y = Measure, chart = 's', xlab = "Run", ylab = "Std. Dev.")
 
 SChart
 ```
@@ -101,11 +101,15 @@ An assessment of the within run variability using either the range (R chart) or 
 
 The variability chart should always be evaluated in conjunction with the data chart. For example, if there is a single run that appears out of control in the data chart and the same run shows greater than normal variability within that run, then it's likely that might be associated with just a few of the replicates that are very different from the mean.
 
-Flags from either the data chart or the variability chart are an indication that the assay is out of control and the assay should be investigated to determine the primary cause(s) for the discrepancy. No changes should be made to the protocol unless there is an obvious observable cause (e.g a liquid handling issue that was observed during the experiment). If the error is just extreme random noise, then the data should regress toward the mean without any intervention. If a root cause is identified and changes are made to the protocol, the new protocol may need to be revalidated with a larger set of reference compounds using the [Replicate-Experiment](https://agm.ncats.nih.gov/app/) [@beck2004], to ensure that there are no systematic shifts in the data.
+Statistical analysis of the data points from both of these charts are used to signal that the process may be out of control. The most basic test compares the summarized statistic for each run (mean for the data chart and standard deviation or range for the variability chart) with the control limits for that statistic that are calculated from all the available runs. If the data point falls outside of these limits, it triggers an "Outside Limits" flag. This is discussed in more detail in @sec-cRepsOutlier.
+
+The second type of test looks for trends in the data points which differ from what would be expected, if the variatbility between runs were random. While there a number of different statistical tests which fit in this category, the details of the specific methods used in the webtool are presented in @sec-meanShift. These trend tests can identify changes in the process before the data points move outside of the control limits and provide an early warning to potential problems in the process before the measurement values go outside of acceptable limits.
+
+It is important to remember that these flags are just indication that the assay may be out of control. The assay should be investigated to determine the primary cause(s) for the discrepancy. No changes should be made to the protocol unless there is an obvious observable cause (e.g a liquid handling issue that was observed during the experiment). If the error is just extreme random noise, then the data should regress toward the mean without any intervention. If a root cause is identified and changes are made to the protocol, the new protocol may need to be revalidated with a larger set of reference compounds using the [Replicate-Experiment](https://agm.ncats.nih.gov/app/) [@beck2004], to ensure that there are no systematic shifts in the data.
 
 ## Reference compound(s)
 
-A reference compound refers to a molecule which is tested in every experimental run of an assay. This compound may be tested once per run, on every plate in a run, or on multiple plates in a run, depending on the characteristics of the assay and its sample capacity. A reference compound should be prepared and used in the assay as if it were any of the test compounds. It should exhibit a full sigmoidal dose response curve (well defined top, bottom, and AC~50~) within the dynamic range of the assay, for the most reproducible potency determinations. If a single reference compound is used, it is also recommended that its potency is near the lower limit of the current potency range, since the potency of test compounds tends to improve over time. Finally, there should be an ample supply of the reference compound so that it can be used over a large number of runs.
+A reference compound refers to a molecule which is tested in every experimental run of an assay. This compound may be tested once per run, on every plate in a run, or on multiple plates in a run, depending on the characteristics of the assay and its sample capacity. A reference compound should be prepared and tested in the assay as if it were any of the test compounds. It should exhibit a full sigmoidal dose response curve (well defined top, bottom, and AC~50~) within the dynamic range of the assay, for the most reproducible potency determinations. If a single reference compound is used, it is also recommended that its potency is near the lower limit of the current potency range, since the potency of test compounds tends to improve over time. Finally, there should be an ample supply of the reference compound so that it can be used over a large number of runs.
 
 While a single reference compound is sufficient, many assays use multiple reference compounds. When multiple reference compounds are used, they should have different potencies and ideally be in different chemical classes. In addition to improved quality control, multiple reference compounds may identify issues specific to a chemical class and allow for a transition of reference compounds over time as the SAR evolves and the potency range of the assay may need to change.
 
@@ -115,9 +119,9 @@ it is also important to remember that control charts only report the behavior of
 
 ## Potency Control Charts (AGM Webtool)
 
-Control charting the potency of reference compound(s) is a simple way to document that an assay is providing consistent data over an extended period of time. Any potency measurement can be used (e.g. AC~50~, K~i~, ED~80~, ...). However it is important to remember that potency values show a log-normal distribution [@elassaiss-schaap2020]. Therefore, as with the replicate-experiment [@beck2004], the data must be transformed to their log values for the statistical analysis. The statistics can then be transformed back to the linear scale for graphing and will appear to be normally distributed, if the y-axis is log scaled. It should be noted that the transformation of standard deviations determined on the log transformed data become fold-standard deviations when transformed back to the linear scale. \[see previous comment about linking to replicate experiment explanation\].
+Control charting the potency of reference compound(s) is a simple way to document that an assay is providing consistent data over an extended period of time. Any potency measurement can be used (e.g. AC~50~, K~i~, ED~80~, ...). However it is important to remember that potency values show a log-normal distribution [@elassaiss-schaap2020]. Therefore, as with the replicate-experiment [@beck2004], the data must be transformed to their log values for the statistical analysis. The statistics can then be transformed back to the linear scale for graphing and will appear to be normally distributed, if the y-axis is log scaled. It should be noted that the transformation of standard deviations determined on the log transformed data become fold-standard deviations when transformed back to the linear scale.
 
-Since most experiments do not usually have enough replicates within the run to provide a good estimate of the population variability, adjustments must be made for the sample size within each run [@guthrie]. These adjustments use a factor, c~4~, whose value is determined by the number of replicates within each run as shown: $$\sigma_{wi} = \overline{sd_{wi}}\sqrt{1 - c^2_4}$$
+Since most experiments do not usually have enough replicates within the run to provide a good estimate of the population variability, adjustments must be made for the sample size within each run [@guthrie]. These adjustments use a factor, c~4~, whose value is determined by the number of replicates within each run as shown: $$\sigma_{wi} = \overline{sd_{wi}}\sqrt{1 - c^2_4}$$ {#eq-sdwi}
 
 When there is only a single replicate in a run, it is not possible to calculate a within run sd, so the moving range, MR, is used instead. The MR is simply the difference in the data between the current run and the previous run. These MR values are then used for the calculation of the control limits in both the data and variability graphs.
 
@@ -125,17 +129,17 @@ The webtool will generate different reports depending upon whether within run re
 
 Reference compounds may be run once per run, on every plate in the run, or somewhere in between. The ideal case is to have a reference compound on every assay plate. This allows the data for the reference compound to be used to help pass or fail individual plates within a run and will provide the most consistent view of the assay process over time. However there may be circumstances where this is not feasible and a reference compound is limited to once per experiment.
 
-The [AGM Control Charting web tool](https://agm.ncats.nih.gov/app/) does all of this for you and creates the appropriate graphs for the data set submitted. In order to load data, the webtool requires a Run ID for each run and the potency for each replicate of the reference compound in the run. It is recommended that the experiment date be used as the Run ID since this allows the runs to be sorted to ensure that they are sequential. The data should be in a .csv file with columns for "Run ID" and "Data" for each replicate. The following examples show how the tool treats the data based on the number of replicates in the data. All examples assume that the assay MSR is 3.0 and the reference compound potency is 50. **Note the analysis is independent of units, so the data is displayed in the same units as the submitted data without explicit units.**
+The [AGM Control Charting](https://agm.ncats.nih.gov/app/)webtool does all of this for you and creates the appropriate graphs for the data set submitted. In order to load data, the webtool requires a Run ID for each run and the potency for each replicate of the reference compound in the run. It is recommended that the experiment date be used as the Run ID since this allows the runs to be sorted to ensure that they are sequential. The data should be in a .csv file with columns for "Run ID" and "Data" for each replicate. The following examples show how the tool treats the data based on the number of replicates in the data. All examples assume that the assay MSR is 3.0 and the reference compound potency is 50. **Note the analysis is independent of units, so the data is displayed in the same units as the submitted data without explicit units.**
 
 Once the data has been uploaded to the webtool, it will calculate the number of replicates in each run and determine the appropriate analyses to run as follows:
 
-1.  If all of the runs contain 2 or more replicates, generate a Replicates report.
-2.  If most of the runs are single replicates, then generate an Individuals report using the first replicate in every run.
+1.  If all of the runs contain 2 or more replicates, generate a Replicates report (where the within run variability is based on the measured within run standard deviations).
+2.  If most of the runs are single replicates, then generate an Individuals report (where the within run variability is based on the moving range between runs) using the first replicate in every run.
 3.  If \< 50% of the runs are single replicates, then generate both reports.
 
 ### Constant Replicate Number (Replicates Report) {#sec-cReps}
 
-The first example may be less common in practice, but is the simplest to interpret, because all of the runs contain the same number of replicates (n = 6), so the c~4~ factor is the same for each run and the control limits are simple horizontal lines representing the 99% Confidence Interval.
+The first example may be less common in practice, but is the simplest to interpret, because all of the runs contain the same number of replicates (n = 6), so the c~4~ factor (@eq-sdwi) is the same for each run and the control limits are simple horizontal lines representing the 99% Confidence Interval.
 
 ```{r}
 #| label: tbl-cReps
@@ -156,7 +160,7 @@ cRepsHead
 
 ![Xbar chart of the constant replicate data.](Reports/cRepsData_2025-07-07%2020_33_11.123606/cRepsData_XbrFig_2025-07-07%2020_31_32.967119.png){#fig-cRepsXbarChart}
 
-@fig-cRepsXbarChart shows the Xbar chart of the run date. The data points represent the geometric mean of the reference compound replicates. The center line is the grand mean of all of the run means and represents the true potency of the reference compound. The other two lines are the upper and lower control limits. It is important to note that the y-axis is displaying the data in the original linear scale, but with logarithmic spacing, so that the data appear to be evenly distributed across the graph. There is a single point that falls just below the lower control limit, but the data regress back toward the mean in the next run, strongly suggesting that this was a random event without a specific cause that needs to be addressed. A more detailed discussion of this outlier can be found in @sec-cRepsOutlier.
+@fig-cRepsXbarChart shows the Xbar chart of the run date. The data points represent the geometric mean of the reference compound replicates. The Center Line is the grand mean of all of the run means (@eq-cl) and represents the true potency of the reference compound. The other two lines are the upper and lower control limits (@eq-lims). It is important to note that the y-axis is displaying the data in the original linear scale, but with logarithmic spacing, so that the data appear to be evenly distributed across the graph. There is a single point that falls just below the lower control limit, but the data regress back toward the mean in the next run, strongly suggesting that this was a random event without a specific cause that needs to be addressed. A more detailed discussion of this outlier can be found in @sec-cRepsOutlier.
 
 ```{r}
 #| label: tbl-cRepsXbarStats
@@ -173,11 +177,11 @@ cRepsXbarStatsHead <- read_csv("Reports/cRepsData_2025-07-07 20_33_11.123606/cRe
 cRepsXbarStatsHead
 ```
 
-A closer look at the statistics table for the Xbar chart, @tbl-cRepsXbarStats, shows the details around the flagged run. The TRUE value in the sigma.signal column indicates a data point that falls outside of the control limits in the chart for the 2023-05-21 run. The values for the CL (50.04), LCL (31.80), and UCL (78.74) also illustrate why the y-axis uses logarithmic scaling since the confidence interval would appear asymmetric if linear scaling were used.
+A closer look at the statistics table for the Xbar chart, @tbl-cRepsXbarStats, shows the details around the flagged run. The TRUE value in the Outside Limits column indicates a data point that falls outside of the control limits in the chart for the 2023-05-21 run. The values for the CL (50.04), LCL (31.80), and UCL (78.74) also illustrate why the y-axis uses logarithmic scaling since the confidence interval would appear asymmetric if linear scaling were used.
 
 ![S chart of the constant replicate data.](Reports/cRepsData_2025-07-07%2020_33_11.123606/cRepsData_SchFig_2025-07-07%2020_31_32.967963.png){#fig-cRepsSchart}
 
-The within run variability is shown in @fig-cRepsSchart. The transformation back to the linear scale converts the y-axis to Fold Std. Dev. and that axis is also log scaled, similar to the Xbar chart. The center line is the transformed mean of run standard deviations (sd~*wi*~*)*. The upper Control Limit is determined by the variability in the within run standard deviations (99% confidence limit), while the Lower Control Limit is 1 which corresponds to a standard deviation of 0. There are a few, short ( n \< 6 runs) trends, but nothing sufficient to set the run.signal flag.
+The within run variability is shown in @fig-cRepsSchart. The transformation back to the linear scale converts the y-axis to Fold Std. Dev. and that axis is also log scaled, similar to the Xbar chart. The center line is the transformed mean of run standard deviations (sd~*wi*~*)*. The upper Control Limit is determined by the variability in the within run standard deviations (99% confidence limit), while the Lower Control Limit is 1 which corresponds to a standard deviation of 0. There are a few, short ( n \< 6 runs) trends, but nothing sufficient to set the Mean Shift flag.
 
 ```{r}
 #| label: tbl-cRepsSchartStats
@@ -196,7 +200,7 @@ cRepsSchartStatsHead
 
 The statistics table for the S chart from the same region as the flagged run in the Xbar chart confirm this, as shown in @tbl-cRepsSchartStats.
 
-The web tool also provides a plot of the MSR values over time. While this is not a formal control chart, it can be useful in understanding the performance of an assay and how the variability can change over time. Unlike the control charts, the MSR values are calculated based on the variability determined for all the reference compound potency measurements within a range of runs, so this variability includes both within run and between run causes for variability. A minimum of 6 runs is required to calculate the MSR, so this chart will not be generated until the data set contains at least 6 runs.
+The webtool also provides a plot of the MSR values over time. While this is not a formal control chart, it can be useful in understanding the performance of an assay and how the variability can change over time. Unlike the control charts, the MSR values are calculated based on the variability determined for all the reference compound potency measurements within a range of runs, so this variability includes both within run and between run causes for variability. **A minimum of 6 runs is required to calculate the MSR,** so this chart will not be generated until the data set contains at least 6 runs. @sec-ctrlLims illustrates how this limit was determined.
 
 The tool calculates two different values for the MSR. The cumulative MSR uses all of the data up to and including a given run. Over time this value will become less sensitive to assay changes, but should converge on the true MSR for the reference compound. The other MSR is calculated using the data from the current run as well as the previous 5 runs. This moving MSR will be more variable, but it is also more sensitive to the short-term performance of the assay.
 
@@ -218,8 +222,6 @@ cRepsMSRHead
 
 As with the other charts, the table of all the run values is also available as shown in @tbl-cRepsMSRData.
 
-See the case study on Control Charting in Real Time @sec-
-
 ### Single Values (Individuals Report)
 
 One common approach is to test the reference compound(s) just once in each run. While this may be driven by assay constraints such as cost or capacity, it presents 2 challenges for control charting. The first is how to estimate the within run variability from a single measurement. Additionally, if there are multiple plates in a run, the reference compound can not be used as a criterion to pass or fail individual plates.
@@ -228,15 +230,15 @@ The range (R) of the data within a run is often used in control charting to esti
 
 $$
 sd_\mathit{wi} = \frac{\bar{R}}{d_2}
-$$
+$$ {#eq-rsd}
 
 Since a single value has no range, the moving range (MR) is calculated using the data values from the current and previous runs:
 
 $$
 MR = |x_n - x_{n-1}|
-$$
+$$ {#eq-mr}
 
-While the value of d~2~ is dependent upon the size of the data set, for n = 2, the value of d~2~ is 1.128. This can then be used to estimate sdwi and provides the information necessary to generate data and variability control charts as shown in the following example.
+While the value of d~2~ is dependent upon the size of the data set, for n = 2, the value of d~2~ is 1.128. This can then be used to estimate sd~wi~ and provides the information necessary to generate data and variability control charts as shown in the following example.
 
 ```{r}
 #| label: tbl-sRepData
@@ -255,7 +257,7 @@ sRepHead
 
 ![Individuals chart fo the single replicate data.](Reports/sRepData_2025-07-07%2020_46_00.062068/sRepData_IChFig_2025-07-07%2020_45_32.125561.png){#fig-sRepIChart}
 
-The potency values for each run are shown in @fig-sRepIChart. While the data point and the mean are identical for individual data, it is referred to as an Individuals chart to distinguish it from an Xbar chart, though they are conceptually similar. The Center Line represents the mean of all the data and estimates the true potency of the reference compound, while the control limits indicate a 99% CI based on the sd~*wi*~. The y-axis uses log scale so that the distribution of the data appears normal. The note at the bottom of the figure indicates that the data is in control with no runs flagged for investigation.
+The potency values for each run are shown in @fig-sRepIChart. While the data point and the mean are identical for individual data, it is referred to as an Individuals chart to distinguish it from an Xbar chart, though they are conceptually similar. The Center Line represents the mean of all the data and estimates the true potency of the reference compound, while the control limits indicate a 99% CI based on the sd~*wi*~. The y-axis uses log scale so that the distribution of the data appears normal. The note at the upper right of the figure indicates that the data is in control with no runs flagged for investigation.
 
 ```{r}
 #| label: tbl-sRepIndChtStats
@@ -314,7 +316,7 @@ sRepMSRHead
 
 ### Variable Replicates
 
-If a reference compound is included on every plate tested, it's likely that the number of replicates will vary from run to run. While this might be a common situation, this will add some complexity to the control charts. Most runs (outside of HTS) will be small (\< 20 plates), so statistical factors are used to adjust for sampling bias in order to better estimate the population $\sigma_{\mathit(wi)}$. As described in the previous 2 sections, there are different factors for this estimate, depending on whether the range (d~2~) or the sd (c~4~) is being used. @tbl-cChartFact shows how these factors change with different values for n. The values for these factors of these factors increase asymptotically as n increases and will eventually converge on constants that are used for larger sample sizes.
+If a reference compound is included on every plate tested, it's likely that the number of replicates will vary from run to run. While this might be a common situation, this will add some complexity to the control charts. Most runs (outside of HTS) will be small (\< 20 plates), so statistical factors are used to adjust for sampling bias in order to better estimate the population $\sigma_{\mathit(wi)}$. As described in the previous 2 sections, there are different factors for this estimate, depending on whether the range (d~2~, @eq-rsd ) or the sd (c~4~, @eq-sdwi ) is being used. @tbl-cChartFact shows how these factors change with different values for n. The values for these factors of these factors increase asymptotically as n increases and will eventually converge on constants that are used for larger sample sizes.
 
 ```{r}
 #| label: tbl-cChartFact
@@ -335,7 +337,7 @@ ccFac
 
 In order to calculate the control limits, the runs are grouped by the number of replicates. The mean sd~*wi*~ for each group is then used with the corresponding c~4~ value to determine the control limits for all of the runs in the group. This provides the best estimate of the control limits for each group, but results in control limits that will change with the number of replicates in the run.
 
-When the number of replicates is variable, the web tool will use all of the data from all of the runs with the same number of replicates to calculate the upper and lower control limits for that group of runs. The following data set illustrates the last situation with 1-6 replicates/run.
+When the number of replicates is variable, the webtool will use all of the data from all of the runs with the same number of replicates to calculate the upper and lower control limits for that group of runs. The following data set illustrates the last situation with 1-6 replicates/run.
 
 ```{r}
 #| label: tbl-vRepsData
@@ -354,7 +356,7 @@ vRepsHead
 
 ![Xbar chart of the variable replicate data](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_XbrFig_2025-07-07%2020_46_51.266025.png){#fig-vRepsXbarChart}
 
-Whenever all or most of the runs contain replicates the web tool will create both an Xbar chart (@fig-vRepsXbarChart) and an S chart. Since these charts use all the replicate data, they should be examined first. As with the constant replicate example, the data points are the mean values for each run and the center line represents the population mean. The control limits now vary according to the number of replicates within the run. Generally as n increases, the control limits will get closer to the center line (CL). There are also gaps in the control limits for the runs with a single replicate because sdwi can not be calculated for single observations.
+Whenever all or most of the runs contain replicates the webtool will create both an Xbar chart (@fig-vRepsXbarChart) and an S chart. Since these charts use all the replicate data, they should be examined first. As with the constant replicate example, the data points are the mean values for each run and the center line represents the population mean. The control limits now vary according to the number of replicates within the run. Generally as n increases, the control limits will get closer to the center line (CL). There are also gaps in the control limits for the runs with a single replicate because sd~wi~ can not be calculated for single observations.
 
 ```{r}
 #| label: tbl-vRepsXbarStats
@@ -392,7 +394,7 @@ vRepsSchartStatsHead
 
 @tbl-vRepsSchartStats shows the underlying statistics for each run. Runs with a single value for the reference compound will have NA values for the Std. Dev. and Control Limits colums, since sd~wi~ can not be calculated with this method.
 
-While they only use the data from the first replicate of each run, Individuals and Moving Range charts are produced whenever there is at least one run with a single replicate of the reference compound. This may help to fill the gaps that appear in the Xbar and S charts. Additionally, whenever the majority of the runs have a single replicate of the reference compound, the Individual and Moving Range charts will be the only control charts generated by the web tool.
+While they only use the data from the first replicate of each run, Individuals and Moving Range charts are produced whenever there is at least one run with a single replicate of the reference compound. This may help to fill the gaps that appear in the Xbar and S charts. Additionally, whenever the majority of the runs have a single replicate of the reference compound, the Individual and Moving Range charts will be the only control charts generated by the webtool.
 
 ![Individuals chart of the variable replicate data.](Reports/vRepsData_2025-07-07%2020_48_00.53638/vRepsData_IChFig_2025-07-07%2020_46_51.264546.png){#fig-vRepIChart}
 
@@ -457,7 +459,7 @@ vRepsMSRHead
 
 ## Case Studies
 
-### Establishing Control Limits
+### Establishing Control Limits {#sec-ctrlLims}
 
 The best practice is to update the control charts for an assay after each run to determine if the experiment was successful. However, it ia important to remember that the control parameters will change with each additional run. These changes can be large over the first few runs. For this reason, control charts should not be used to pass or fail individual runs, until there are at least 6 runs of historical data to determine the control limits.
 
@@ -487,7 +489,7 @@ extract_ctrlCht_params <- function(endDate, ccData, ccType) {
 
   params <- qic(x = ccData$Run, y = log10(ccData$Data), chart = ccType, return.data = TRUE) %>%
     select(all_of(sel_cols)) %>%
-    mutate(across(contains("cl"), pow10)) %>%
+    mutate(across(contains("cl"), \(x) x^10)) %>%
     summarize_all(last)
 
   return(params)
@@ -610,7 +612,7 @@ xBarTL_plot <- (xBarTL1_plot + xBarTL2_plot) / (xBarTL3_plot + xBarTL6_plot) +
 xBarTL_plot
 ```
 
-The variability in the parameters for the mean potency is shown in @fig-xBarTL, for each data set with the center line (CL) in blue and the control limits (UCL, LCL) in red. While all of the data sets show some significant differences in the control limits in the first few runs, they tend to converge to a steady state after about 6 runs. The differences between the y-axes for the different runs also illustrates the impact of increasing n on the parameter estimates.
+The variability in the parameters for the mean potency is shown in @fig-xBarTL, for each data set with the center line (CL) in blue and the control limits (UCL, LCL) in red. While all of the data sets show some significant differences in the control limits in the first few runs, they tend to converge to a steady state after about 6 runs (Note: 6 runs is also the lower limit for MSR estimation). The differences between the y-axes for the different runs also illustrates the impact of increasing n on the parameter estimates.
 
 ```{r}
 #| label: fig-sChartTL
@@ -673,9 +675,11 @@ The variability charts in @fig-sChartTL show a similar pattern with more differe
 
 These plots illustrate why you should not use the control limits in the initial runs of an assay to make pass/fail decisions about those runs. Though, after sufficient data has been collected, you may recognize that an early run was out of control. Additionally, as the number of runs increases, the control limits will become less sensitive to changes in assay performance. If the assay appears to be in control, this can be mitigated by starting a new set of charts, with just the 10 most recent runs to establish updated control limits.
 
-### Evaluating Out of Control Data (Constant Replicates Example). {#sec-cRepsOutlier}
+### Outside Limits Flag {#sec-cRepsOutlier}
 
-Ideally, a new control chart should be created and reviewed as soon as possible after each run. If the data for the reference compound(s) appear to be in control (no flags in the run.signal or sigma.signal columns), then the experiment can be considered to be successful.
+Ideally, a new control chart should be created and reviewed as soon as possible after each run. If the data for the reference compound(s) appear to be in control (no flags in the Mean Shift or Outside Limits columns), then the experiment can be considered to be successful.
+
+The Outside Limits flag is simply a test of the of the summary statistics (mean and sd~wi~) for each run within the entire data set. These statistics are compared to their control limits (@eq-cl), which correspond to a 99% CI for the run statistic. If the run statistic falls outside of these limits, it is flagged as being out of control.
 
 If the reference compound out of control, the data from the entire experiment may be suspect and further investigation is needed. It is much easier to identify potential causes while the experimental details are more readily available. If potential causes are identified (e.g. the assayer observed something unusual during the assay) they can be assessed for their impact on the whole experiment. Having a reference compound on each plate allows individual plates to be passed or failed. If there are are replicates within the run, but not on every plate, then any plates between two passing replicates are considered suspect and if there is only one instance of the reference compound in a run, then all the plates in the run are suspect.
 
@@ -709,6 +713,10 @@ cRepsOutRun
 ```
 
 The next step would be to examine the individual replicates as shown in @tbl-cRepsOutRun. Only the replicates 3 and 4 are close to the expected value of 50, while the other 4 replicates are closer to half of the expected value. At this point the individual curve fits could be examined for possible outlier data points. It is possible that there could have been an error in either the preparation of the reference compound or another reagent for this experiment or a liquid handling problem with the suspect plates. Unless the assayer observed something specific, there is no assignable cause. At this point the best thing to run the experiment again without making any changes to the protocol. In this case we know from @fig-cRepsXbarChart that the next run was fine. While the data from the other samples in these experiments is not available, if there were results for those test samples in other runs, a paired t-test or other analysis might be used to confirm if there was an issue with the run in question. For this reason, it would be important to document the suspected issues with that run, in case of further issues with any of the data generated in the experiment. It would also be recommended to rerun all of the test samples from the suspected run at some point to confirm the test results.
+
+### Mean Shift Flag {#sec-meanShift}
+
+The mean shift flag is used to identify suspicious trends in the data related to a group of consecutive runs. This flag is based on the assumption that the within run variability is random, therefore half of the run statistics should be on either side of the population statistic (Center Line). Conceptually this can be treated like coin flips. Overall you expect half of the results will be heads or tails, but short streaks of heads are not suspicious the the more times you flip the coin the longer these streaks need to be for them to cause concern. This can be tested statistically by looking at how many times the line connecting the run summarized statistics cross the Center Line (population statistic). This flag actually encompasses 2 measured parameters. The first measurement is the observed number of times that the data line crosses the center line and the second measurement is the number of consecutive runs after the last crossing of the center line. These measurements can be compared to test statistics based on the number of runs in the data set to identify suspicious behavior [@anhøj2014].
 
 ## Acknowledgement
 

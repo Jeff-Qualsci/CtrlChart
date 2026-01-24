@@ -2,3 +2,7 @@
   quarto-pub:
     - id: aa904929-39ad-49db-9540-cc89fd06669d
       url: https://jeff-qualsci.quarto.pub/control-charting
+- source: MeanShift.qmd
+  quarto-pub:
+    - id: 0c14730f-3a4e-4cf3-92c5-a8eba6f4124f
+      url: https://jeff-qualsci.quarto.pub/mean-shift-flag-fix
