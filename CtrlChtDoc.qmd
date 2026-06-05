@@ -177,7 +177,7 @@ A closer look at the statistics table for the Xbar chart, @tbl-cRepsXbarStats, s
 
 ![S chart of the constant replicate data.](Reports/cRepsData_2025-07-07%2020_33_11.123606/cRepsData_SchFig_2025-07-07%2020_31_32.967963.png){#fig-cRepsSchart}
 
-The within run variability is shown in @fig-cRepsSchart. The transformation back to the linear scale converts the y-axis to Fold Std. Dev. and that axis is also log scaled, similar to the Xbar chart. The center line is the transformed mean of run standard deviations (sd~*wi*~*)*. The upper Control Limit is determined by the variability in the within run standard deviations (99% confidence limit), while the Lower Control Limit is 1 which corresponds to a standard deviation of 0. There are a few, short ( n \< 6 runs) trends, but nothing sufficient to set the Mean Shift flag.
+The within run variability is shown in @fig-cRepsSchart. The transformation back to the linear scale converts the y-axis to Fold Std. Dev. and that axis is also log scaled, similar to the Xbar chart. The center line is the transformed mean of run standard deviations (sd~*wi*~*)*. The upper Control Limit is determined by the variability in the within run standard deviations (99% confidence limit), while the Lower Control Limit is 1 which corresponds to a standard deviation of 0. There are a few, short (n \< 6 runs) trends, but nothing sufficient to set the Mean Shift flag.
 
 ```{r}
 #| label: tbl-cRepsSchartStats
