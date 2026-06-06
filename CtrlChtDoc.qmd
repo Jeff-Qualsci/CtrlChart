@@ -168,6 +168,7 @@ cRepsXbarStatsHead <- read_csv("Reports/cRepsData/cRepsData_XbarChartData_tbl.cs
   gt() %>%
   gt_highlight_rows(rows = 3, font_weight = "normal") %>%
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Constant Replicates Xbar Chart Data')
 
 cRepsXbarStatsHead
@@ -189,6 +190,7 @@ cRepsSchartStatsHead <- read_csv("Reports/cRepsData/cRepsData_SChartData_tbl.csv
   gt() %>% 
    gt_highlight_rows(rows = 3, font_weight = "normal") %>%
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Constant Replicates S Chart Data')
 
 cRepsSchartStatsHead
@@ -260,6 +262,7 @@ sRepIndStatsHead <- read_csv("Reports/sRepData/sRepData_IChartData_tbl.csv") %>%
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Single Replicate Individuals Chart Data')
 
 sRepIndStatsHead
@@ -280,6 +283,7 @@ sRepMRchartStatsHead <- read_csv("Reports/sRepData/sRepData_MChartData_tbl.csv")
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Single Replicates MR Chart Data')
 
 sRepMRchartStatsHead
@@ -359,6 +363,7 @@ vRepsXbarStatsHead <- read_csv("Reports/vRepsData/vRepsData_XbarChartData_tbl.cs
   slice_head(n = 10) %>% 
   gt()  %>% 
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Variable Replicates Xbar Chart Data')
 
 vRepsXbarStatsHead
@@ -379,6 +384,7 @@ vRepsSchartStatsHead <- read_csv("Reports/vRepsData/vRepsData_SChartData_tbl.csv
   slice_head(n = 10) %>% 
   gt() %>% 
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>% 
   tab_header(title = 'Constant Replicates S Chart Data')
 
 vRepsSchartStatsHead
@@ -401,6 +407,7 @@ vRepIndStatsHead <- read_csv("Reports/vRepsData/vRepsData_IChartData_tbl.csv") %
   mutate(n = as.character(n)) %>%
   gt() %>% 
   fmt_number(n_sigfig = 3) %>% 
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Variable Replicates Individuals Chart Data')
 
 vRepIndStatsHead
@@ -422,6 +429,7 @@ vRepMRchartStatsHead <- read_csv("Reports/vRepsData/vRepsData_MChartData_tbl.csv
   slice_head(n = 10) %>% 
   gt() %>% 
   fmt_number(n_sigfig = 3) %>%  
+  fmt_scientific(columns = c(`Longest Run`, `Longest Run Max`, `N Crossings`, `N Crossings Min`), decimals = 2) %>%
   tab_header(title = 'Variable Replicates MR Chart Data')
 
 vRepMRchartStatsHead
