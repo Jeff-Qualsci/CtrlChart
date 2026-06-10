@@ -61,3 +61,6 @@ Status_Reports/
 CtrlChtDoc.pdf
 CtrlChtDoc.html
 CtrlChtDoc_files
+
+# Mac Finder Metadata
+.DS_Store
