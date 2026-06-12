@@ -64,3 +64,6 @@ CtrlChtDoc_files
 
 # Mac Finder Metadata
 .DS_Store
+
+# Quarto files
+.quarto/
